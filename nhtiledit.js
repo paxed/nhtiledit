@@ -396,9 +396,19 @@ function tile_undo(tilenum)
         return;
     }
     var u = tile.undo.pop();
-    tile_setpixel(u.x, u.y, tile, u.oval);
-    drawtile_pixel(0, 0, u.x, u.y, tile);
-    tile.undo.pop(); /* remove the undo we just caused via tile_setpixel */
+    if (u.multi) {
+        /* multiple pixels changed */
+        for (var i = 0; i < u.multi.length; i++) {
+            tile_setpixel(u.multi[i].x, u.multi[i].y, tile, u.multi[i].oval);
+            drawtile_pixel(0, 0, u.multi[i].x, u.multi[i].y, tile);
+            tile.undo.pop(); /* remove the undo we just caused via tile_setpixel */
+        }
+    } else {
+        /* single pixel changed */
+        tile_setpixel(u.x, u.y, tile, u.oval);
+        drawtile_pixel(0, 0, u.x, u.y, tile);
+        tile.undo.pop(); /* remove the undo we just caused via tile_setpixel */
+    }
 }
 
 function show_tile_code(tilenum)
@@ -417,6 +427,34 @@ function show_tile_code(tilenum)
     e.textContent = s;
 }
 
+/* replace all colors */
+function tile_replace_color(tilenum, fromclr, toclr)
+{
+    var tile = tiles[tilenum];
+    var tx, ty;
+    var changed = 0;
+    var multiple = new Array();
+
+    if (fromclr == toclr)
+        return;
+
+    for (ty = 0; ty < tile.hei; ty++) {
+        for (tx = 0; tx < tile.wid; tx++) {
+            var val = tile_getpixel(tx, ty, tile);
+            if (val == fromclr) {
+                tile_setpixel(tx,ty, tile, toclr);
+                multiple.push(tile.undo.pop());
+                changed = 1;
+            }
+        }
+    }
+
+    if (changed) {
+        tile.undo.push({ multi: multiple });
+        draw();
+    }
+}
+
 function handle_keys()
 {
     if (event.defaultPrevented) {
@@ -431,6 +469,11 @@ function handle_keys()
         break;
     case "u":
         tile_undo(curtile);
+        break;
+    case "r":
+        if (cursor_x >= 0) {
+            tile_replace_color(curtile, tile_getpixel(cursor_x, cursor_y, tiles[curtile]), curcolor);
+        }
         break;
     default: return;
     }
