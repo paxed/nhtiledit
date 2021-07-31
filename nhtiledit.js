@@ -190,7 +190,7 @@ function nh_parse_text_tiles(data)
             }
             tileidx = tileidx + 1;
 
-            tmp_tiles.push({ wid: tilewid, hei: tilehei, name: tilename, data: tiledata });
+            tmp_tiles.push({ wid: tilewid, hei: tilehei, name: tilename, data: tiledata, undo: new Array() });
             in_tile = 0;
             tilenum = -1;
             tilehei = 0;
@@ -342,6 +342,11 @@ function create_color_picker()
 
 function tile_setpixel(tx, ty, tile, val)
 {
+    var origval = tile.data[ty].slice(tx, tx + clr_wid);
+    if (origval == val)
+        return;
+
+    tile.undo.push({ x: tx, y: ty, oval: origval });
     var val = tile.data[ty].substr(0, tx * clr_wid) + val + tile.data[ty].substr(tx+clr_wid);
     tile.data[ty] = val;
     show_tile_code(curtile);
@@ -384,6 +389,18 @@ function draw()
     show_tile_code(curtile);
 }
 
+function tile_undo(tilenum)
+{
+    var tile = tiles[tilenum];
+    if (!tile.undo || tile.undo.length < 1) {
+        return;
+    }
+    var u = tile.undo.pop();
+    tile_setpixel(u.x, u.y, tile, u.oval);
+    drawtile_pixel(0, 0, u.x, u.y, tile);
+    tile.undo.pop(); /* remove the undo we just caused via tile_setpixel */
+}
+
 function show_tile_code(tilenum)
 {
     var e = document.getElementById("show-tile-format");
@@ -411,6 +428,9 @@ function handle_keys()
         if (cursor_x >= 0) {
             change_drawing_color(tile_getpixel(cursor_x, cursor_y, tiles[curtile]));
         }
+        break;
+    case "u":
+        tile_undo(curtile);
         break;
     default: return;
     }
