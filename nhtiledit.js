@@ -120,7 +120,6 @@ function handleFileSelect(event) {
 
 function handleFileLoad(event) {
     var data = event.target.result;
-    reset_tiledata();
     nh_parse_text_tiles(data);
 }
 
@@ -147,22 +146,27 @@ function nh_parse_text_tiles(data)
     var tilewid = 0;
     var tileidx = 0;
 
+    var tmp_palette = {};
+    var tmp_tiles = new Array();
+    var tmp_clr_wid = 0;
+    var tmp_curcolor = "";
+
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
         if (!in_tile && line.match(re_color)) {
             var m = line.match(re_color);
-            palette[m[1]] = { color: "rgb" + m[2] };
-            curcolor = m[1];
-            if (!clr_wid) {
-                clr_wid = m[1].length;
-            } else if (clr_wid != m[1].length) {
+            tmp_palette[m[1]] = { color: "rgb" + m[2] };
+            tmp_curcolor = m[1];
+            if (!tmp_clr_wid) {
+                tmp_clr_wid = m[1].length;
+            } else if (tmp_clr_wid != m[1].length) {
                 alert("ERROR: color key '" + m[1] + "' is different length from earlier keys.");
             }
         } else if (!in_tile && line.match(re_tilename)) {
             var m = line.match(re_tilename);
             tilenum = m[1];
             tilename = m[2];
-            if (tilenum < tiles.length) {
+            if (tilenum < tmp_tiles.length) {
                 alert("ERROR: Tile #" + tilenum + " already exists.");
             }
         } else if (!in_tile && line == "{") {
@@ -172,10 +176,10 @@ function nh_parse_text_tiles(data)
             tiledata[tilehei] = m[1];
             tilehei = tilehei + 1;
             if (!tilewid) {
-                if ((m[1].length % clr_wid)) {
+                if ((m[1].length % tmp_clr_wid)) {
                     alert("ERROR: tiledata for tile #" + tilenum + "(" + tilename + ") is not even with palette width");
                 }
-                tilewid = parseInt("" + (m[1].length / clr_wid));
+                tilewid = parseInt("" + (m[1].length / tmp_clr_wid));
             }
         } else if (in_tile && line == "}") {
             if (tilenum == -1) {
@@ -186,7 +190,7 @@ function nh_parse_text_tiles(data)
             }
             tileidx = tileidx + 1;
 
-            tiles.push({ wid: tilewid, hei: tilehei, name: tilename, data: tiledata });
+            tmp_tiles.push({ wid: tilewid, hei: tilehei, name: tilename, data: tiledata });
             in_tile = 0;
             tilenum = -1;
             tilehei = 0;
@@ -195,10 +199,17 @@ function nh_parse_text_tiles(data)
             tiledata = {};
         } else if (line != "") {
             alert("ERROR: Unknown file format.");
-            reset_tiledata();
+            document.getElementById('fileInput').value = null;
             return;
         }
     }
+
+    reset_tiledata();
+    palette = tmp_palette;
+    tiles = tmp_tiles;
+    clr_wid = tmp_clr_wid;
+    curcolor = tmp_curcolor;
+
     curtile = 0;
     setup();
     change_drawing_color(curcolor);
