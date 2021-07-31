@@ -223,6 +223,18 @@ function nh_parse_text_tiles(data)
     tile_update(tiles[0]);
 }
 
+function preview_tile_click_event()
+{
+    var x = this.getAttribute("data-x");
+    var y = this.getAttribute("data-y");
+
+    if (!tiles[curtile].image)
+        tiles[curtile].image = get_tile_image(tiles[curtile]);
+
+    preview.data[y][x] = curtile;
+    preview.img[y][x].src = tiles[curtile].image.src;
+}
+
 function setup_preview(tilewid, tilehei)
 {
     var e = document.getElementById("preview");
@@ -241,6 +253,9 @@ function setup_preview(tilewid, tilehei)
             tiles[y][x] = 0;
             images[y][x] = new Image();
             var spn = document.createElement("span");
+            spn.setAttribute("data-x", x);
+            spn.setAttribute("data-y", y);
+            spn.addEventListener("click", preview_tile_click_event);
             spn.appendChild(images[y][x]);
             e.appendChild(spn);
         }
