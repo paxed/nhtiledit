@@ -27,10 +27,12 @@ function setup()
     canvas_hei = tiles[curtile].hei * scale;
     canvas.width = canvas_wid;
     canvas.height = canvas_hei;
-    ctx.setTransform(1, 0, 0, 1, 0, 0); /* reset to defaults */
-    ctx.scale(scale, scale);
+    //ctx.setTransform(1, 0, 0, 1, 0, 0); /* reset to defaults */
+    //ctx.scale(scale, scale);
     canvas.addEventListener("click", canvas_click_event);
     canvas.addEventListener("mousemove", canvas_mousemove_event);
+    canvas.addEventListener("mouseleave", canvas_mouseleave_event);
+    document.addEventListener("keydown", handle_keys);
 }
 
 function init()
@@ -46,7 +48,17 @@ function handleFileSelect(event) {
 
 function handleFileLoad(event) {
     var data = event.target.result;
+    reset_tiledata();
     nh_parse_text_tiles(data);
+}
+
+function reset_tiledata()
+{
+    palette = {};
+    tiles = new Array();
+    clr_wid = 0;
+    curtile = -1;
+    curcolor = "";
 }
 
 function nh_parse_text_tiles(data)
@@ -116,6 +128,7 @@ function nh_parse_text_tiles(data)
     change_drawing_color(curcolor);
     create_tile_selector();
     create_color_picker();
+    show_tile_code(curtile);
     draw();
 }
 
@@ -129,7 +142,23 @@ function canvas_click_event()
 
     var tx = parseInt("" + (x / scale));
     var ty = parseInt("" + (y / scale));
+
+    tile_setpixel(tx, ty, tiles[curtile], curcolor);
+    drawtile_pixel(0, 0, tx, ty, tiles[curtile]);
+    //drawtile(0, 0, curtile);
+
     console.log("CLICK("+tx+","+ty+")");
+}
+
+var cursor_x = -1;
+var cursor_y = -1;
+
+function canvas_mouseleave_event()
+{
+    if (cursor_x >= 0) {
+        drawtile_pixel(0, 0, cursor_x, cursor_y, tiles[curtile]);
+    }
+    cursor_x = cursor_y = -1;
 }
 
 function canvas_mousemove_event()
@@ -143,7 +172,20 @@ function canvas_mousemove_event()
     var tx = parseInt("" + (x / scale));
     var ty = parseInt("" + (y / scale));
 
-    ctx.fillRect(tx, ty, 1, 1);
+    if (cursor_x >= 0) {
+        drawtile_pixel(0, 0, cursor_x, cursor_y, tiles[curtile]);
+    }
+    cursor_x = tx;
+    cursor_y = ty;
+
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgb(255, 255, 255)";
+    ctx.globalCompositeOperation = "xor";
+    ctx.rect((cursor_x*scale) + 1, (cursor_y*scale) + 1, scale - 3, scale - 3);
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+
     console.log("MOUSEMOVE("+tx+","+ty+")");
 }
 
@@ -157,6 +199,7 @@ function change_drawing_color(newclr)
 
     var e = document.getElementById("current-color");
     e.style.backgroundColor = palette[newclr].color;
+    ctx.fillStyle = palette[newclr].color;
 }
 
 function tile_select()
@@ -169,6 +212,7 @@ function tile_select()
 function create_tile_selector()
 {
     var sel = document.getElementById("tile-selector");
+    sel.innerHTML = '';
     sel.size = 20;
     sel.addEventListener("change", tile_select);
     for (var i = 0; i < tiles.length; i++) {
@@ -190,17 +234,40 @@ function color_select()
 function create_color_picker()
 {
     var picker = document.getElementById("color-picker");
+    picker.innerHTML = '';
 
     for (let key in palette) {
         var clr = palette[key];
         var el = document.createElement("span");
         el.className = "color";
-        /*el.textContent = " ";*/
         el.setAttribute("data-palette-key", key);
         el.addEventListener("click", color_select);
         el.style.backgroundColor = clr.color;
         picker.appendChild(el);
     }
+}
+
+function tile_setpixel(tx, ty, tile, val)
+{
+    var val = tile.data[ty].substr(0, tx * clr_wid) + val + tile.data[ty].substr(tx+clr_wid);
+    tile.data[ty] = val;
+    show_tile_code(curtile);
+}
+
+function tile_getpixel(tx, ty, tile)
+{
+    return tile.data[ty].substr(tx * clr_wid, clr_wid);
+}
+
+function drawtile_pixel(x,y, tx,ty, tile)
+{
+    if (tx < 0 || ty < 0 || tx >= tile.wid || ty >= tile.hei) {
+        console.log("Trying to drawtile_pixel ("+tx+","+ty+")");
+        return;
+    }
+    var clrkey = tile.data[ty].substr(tx * clr_wid, clr_wid);
+    ctx.fillStyle = palette[clrkey].color;
+    ctx.fillRect(x + tx*scale, y + ty*scale, scale, scale);
 }
 
 function drawtile(x, y, tilenum)
@@ -213,9 +280,7 @@ function drawtile(x, y, tilenum)
 
     for (ty = 0; ty < tile.hei; ty++) {
         for (tx = 0; tx < tile.wid; tx++) {
-            var clrkey = tile.data[ty].substr(tx * clr_wid, clr_wid);
-            ctx.fillStyle = palette[clrkey].color;
-            ctx.fillRect(x + tx, y + ty, 1, 1);
+            drawtile_pixel(x,y, tx,ty, tile);
         }
     }
 }
@@ -223,4 +288,38 @@ function drawtile(x, y, tilenum)
 function draw()
 {
     drawtile(0, 0, curtile);
+}
+
+function show_tile_code(tilenum)
+{
+    var e = document.getElementById("show-tile-format");
+    var ty;
+    var tile = tiles[tilenum];
+
+    var s = "# tile XXX (something)\n";
+    s += "{\n";
+    for (ty = 0; ty < tile.hei; ty++) {
+        s += "  " + tile.data[ty] + "\n";
+    }
+    s += "}\n";
+
+    e.textContent = s;
+}
+
+function handle_keys()
+{
+    if (event.defaultPrevented) {
+        return;
+    }
+
+    switch (event.key) {
+    case ".":
+        if (cursor_x >= 0) {
+            change_drawing_color(tile_getpixel(cursor_x, cursor_y, tiles[curtile]));
+        }
+        break;
+    default: return;
+    }
+
+    event.preventDefault();
 }

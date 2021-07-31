@@ -1,6 +1,5 @@
 
 canvas {
-    float:left;
     border: 1px solid black;
     margin: 1em;
 }
@@ -16,4 +15,11 @@ canvas {
     height: 2em;
     display: inline-block;
     border: 1px solid black;
+}
+
+#show-tile-format {
+    display: block;
+    unicode-bidi: embed;
+    font-family: monospace;
+    white-space: pre;
 }
