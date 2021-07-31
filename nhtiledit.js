@@ -193,6 +193,10 @@ function nh_parse_text_tiles(data)
             tilewid = 0;
             tilename = "";
             tiledata = {};
+        } else if (line != "") {
+            alert("ERROR: Unknown file format.");
+            reset_tiledata();
+            return;
         }
     }
     curtile = 0;
@@ -291,7 +295,6 @@ function create_tile_selector()
     var sel = document.getElementById("tile-selector");
     sel.innerHTML = '';
     sel.size = Math.min(20, tiles.length);
-    sel.addEventListener("change", tile_select);
     for (var i = 0; i < tiles.length; i++) {
         var t = tiles[i];
         var el = document.createElement("option");
@@ -299,6 +302,8 @@ function create_tile_selector()
         el.value = i;
         sel.appendChild(el);
     }
+    sel.options[0].selected = 'selected';
+    sel.addEventListener("change", tile_select);
 }
 
 function color_select()
