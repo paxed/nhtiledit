@@ -7,6 +7,7 @@ if (!canvas.getContext) {
 var ctx = canvas.getContext("2d");
 
 
+var preview;
 var palette = {};
 var tiles = new Array();
 var clr_wid = 0;
@@ -217,7 +218,60 @@ function nh_parse_text_tiles(data)
     create_tile_selector();
     create_color_picker();
     show_tile_code(curtile);
+    setup_preview(tiles[0].wid, tiles[0].hei);
     draw();
+}
+
+function setup_preview(tilewid, tilehei)
+{
+    var e = document.getElementById("preview");
+    var tiles = new Array();
+    var x, y;
+    const wid = 7;
+    const hei = 7;
+    var images = new Array();
+
+    e.innerHTML = '';
+
+    for (y = 0; y < hei; y++) {
+        tiles[y] = new Array();
+        images[y] = new Array();
+        for (x = 0; x < wid; x++) {
+            tiles[y][x] = 0;
+            images[y][x] = new Image();
+            var spn = document.createElement("span");
+            spn.appendChild(images[y][x]);
+            e.appendChild(spn);
+        }
+        e.appendChild(document.createElement("br"));
+    }
+
+    preview = { w: wid, h: hei, data: tiles, elem: e, img: images };
+}
+
+function update_preview()
+{
+    var x, y;
+    var tx, ty;
+
+    if (!preview)
+        return;
+
+    var p = preview;
+
+    for (y = 0; y < p.h; y++) {
+        for (x = 0; x < p.w; x++) {
+            var tilenum = p.data[y][x];
+            if (!tiles[tilenum])
+                tilenum = 0;
+            var tile = tiles[tilenum];
+
+            if (!tile.image)
+                tile.image = get_tile_image(tile);
+
+            p.img[y][x].src = tile.image.src;
+        }
+    }
 }
 
 function canvas_click_event()
@@ -341,6 +395,30 @@ function create_color_picker()
     }
 }
 
+function get_tile_image(tile)
+{
+    var e = document.createElement("canvas");
+    var c = e.getContext("2d");
+    var tx, ty;
+    var durl;
+    e.width = tile.wid;
+    e.height = tile.hei;
+
+    for (ty = 0; ty < tile.hei; ty++) {
+        for (tx = 0; tx < tile.wid; tx++) {
+            var clrkey = tile.data[ty].substr(tx * clr_wid, clr_wid);
+            c.fillStyle = palette[clrkey].color;
+            c.fillRect(tx, ty, 1, 1);
+        }
+    }
+    var img = new Image(tile.wid, tile.hei);
+    img.crossOrigin = 'Anonymous';
+    img.src = e.toDataURL("image/png");
+    c = null;
+    e = null;
+    return img;
+}
+
 function tile_setpixel(tx, ty, tile, val)
 {
     var origval = tile.data[ty].slice(tx, tx + clr_wid);
@@ -350,7 +428,9 @@ function tile_setpixel(tx, ty, tile, val)
     tile.undo.push({ x: tx, y: ty, oval: origval });
     var val = tile.data[ty].substr(0, tx * clr_wid) + val + tile.data[ty].substr(tx+clr_wid);
     tile.data[ty] = val;
+    tile.image = get_tile_image(tile);
     show_tile_code(curtile);
+    update_preview();
 }
 
 function tile_getpixel(tx, ty, tile)
@@ -388,6 +468,7 @@ function draw()
 {
     drawtile(0, 0, curtile);
     show_tile_code(curtile);
+    update_preview();
 }
 
 function tile_undo(tilenum)

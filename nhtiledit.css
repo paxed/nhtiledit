@@ -4,6 +4,10 @@ canvas {
     margin: 1em;
 }
 
+#preview {
+    display:inline-block;
+}
+
 #helpkey {
     float: right;
 }
