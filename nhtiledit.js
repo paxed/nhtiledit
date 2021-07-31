@@ -16,6 +16,76 @@ const scale = 30;
 var canvas_wid = 16*scale;
 var canvas_hei = 16*scale;
 
+var default_data = `
+. = (71, 108, 108)
+A = (0, 0, 0)
+B = (0, 182, 255)
+C = (255, 108, 0)
+D = (255, 0, 0)
+E = (0, 0, 255)
+F = (0, 145, 0)
+G = (108, 255, 0)
+H = (255, 255, 0)
+I = (255, 0, 255)
+J = (145, 71, 0)
+K = (204, 79, 0)
+L = (255, 182, 145)
+M = (237, 237, 237)
+N = (255, 255, 255)
+O = (215, 215, 215)
+P = (108, 145, 182)
+Q = (18, 18, 18)
+R = (54, 54, 54)
+S = (73, 73, 73)
+T = (82, 82, 82)
+U = (205,205,205)
+V = (104, 104, 104)
+W = (131, 131, 131)
+X = (140, 140, 140)
+Y = (149, 149, 149)
+Z = (195, 195, 195)
+0 = (100, 100, 100)
+1 = (72, 108, 108)
+# tile 0 (question mark)
+{
+  ................
+  ................
+  .....NNNN.......
+  ....NNNNNN......
+  ...NNAAAANN.....
+  ...NNA...NNA....
+  ....AA...NNA....
+  ........NNAA....
+  .......NNAA.....
+  ......NNAA......
+  ......NNA.......
+  .......AA.......
+  ......NN........
+  ......NNA.......
+  .......AA.......
+  ................
+}
+# tile 1 (floor of a room)
+{
+  ................
+  ................
+  ................
+  ................
+  ................
+  ................
+  ................
+  .......PP.......
+  .......PP.......
+  ................
+  ................
+  ................
+  ................
+  ................
+  ................
+  ................
+}
+`;
+
 
 function setup()
 {
@@ -38,6 +108,8 @@ function setup()
 function init()
 {
     document.getElementById('fileInput').addEventListener('change', handleFileSelect, false);
+    reset_tiledata();
+    nh_parse_text_tiles(default_data);
 }
 
 function handleFileSelect(event) {
@@ -147,7 +219,7 @@ function canvas_click_event()
     drawtile_pixel(0, 0, tx, ty, tiles[curtile]);
     //drawtile(0, 0, curtile);
 
-    console.log("CLICK("+tx+","+ty+")");
+    //console.log("CLICK("+tx+","+ty+")");
 }
 
 var cursor_x = -1;
@@ -186,7 +258,7 @@ function canvas_mousemove_event()
     ctx.stroke();
     ctx.globalCompositeOperation = "source-over";
 
-    console.log("MOUSEMOVE("+tx+","+ty+")");
+    //console.log("MOUSEMOVE("+tx+","+ty+")");
 }
 
 function change_drawing_color(newclr)
@@ -213,7 +285,7 @@ function create_tile_selector()
 {
     var sel = document.getElementById("tile-selector");
     sel.innerHTML = '';
-    sel.size = 20;
+    sel.size = Math.min(20, tiles.length);
     sel.addEventListener("change", tile_select);
     for (var i = 0; i < tiles.length; i++) {
         var t = tiles[i];
@@ -288,6 +360,7 @@ function drawtile(x, y, tilenum)
 function draw()
 {
     drawtile(0, 0, curtile);
+    show_tile_code(curtile);
 }
 
 function show_tile_code(tilenum)
