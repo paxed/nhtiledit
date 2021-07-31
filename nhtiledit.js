@@ -217,7 +217,7 @@ function canvas_click_event()
 
     tile_setpixel(tx, ty, tiles[curtile], curcolor);
     drawtile_pixel(0, 0, tx, ty, tiles[curtile]);
-    //drawtile(0, 0, curtile);
+    draw_cursor(tx, ty);
 
     //console.log("CLICK("+tx+","+ty+")");
 }
@@ -233,6 +233,23 @@ function canvas_mouseleave_event()
     cursor_x = cursor_y = -1;
 }
 
+function draw_cursor(tx, ty)
+{
+    if (cursor_x >= 0) {
+        drawtile_pixel(0, 0, cursor_x, cursor_y, tiles[curtile]);
+    }
+    cursor_x = tx;
+    cursor_y = ty;
+
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgb(255, 0, 255)";
+    ctx.globalCompositeOperation = "difference";
+    ctx.rect((cursor_x*scale) + 1, (cursor_y*scale) + 1, scale - 2, scale - 2);
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+}
+
 function canvas_mousemove_event()
 {
     var left = canvas.offsetLeft + canvas.clientLeft;
@@ -244,19 +261,7 @@ function canvas_mousemove_event()
     var tx = parseInt("" + (x / scale));
     var ty = parseInt("" + (y / scale));
 
-    if (cursor_x >= 0) {
-        drawtile_pixel(0, 0, cursor_x, cursor_y, tiles[curtile]);
-    }
-    cursor_x = tx;
-    cursor_y = ty;
-
-    ctx.beginPath();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgb(255, 255, 255)";
-    ctx.globalCompositeOperation = "xor";
-    ctx.rect((cursor_x*scale) + 1, (cursor_y*scale) + 1, scale - 3, scale - 3);
-    ctx.stroke();
-    ctx.globalCompositeOperation = "source-over";
+    draw_cursor(tx, ty);
 
     //console.log("MOUSEMOVE("+tx+","+ty+")");
 }

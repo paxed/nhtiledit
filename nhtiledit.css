@@ -8,6 +8,11 @@ canvas {
     width: 2em;
     height: 2em;
     display: inline-block;
+    border: 1px solid transparent;
+}
+
+#color-picker .color:hover {
+    border: 1px solid black;
 }
 
 #current-color {
