@@ -4,6 +4,17 @@ canvas {
     margin: 1em;
 }
 
+#helpkey {
+    float: right;
+}
+#help {
+    display:none;
+}
+#help:target {
+    display:block;
+    float: right;
+}
+
 #color-picker .color {
     width: 2em;
     height: 2em;
