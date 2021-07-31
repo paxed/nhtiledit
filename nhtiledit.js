@@ -135,9 +135,9 @@ function reset_tiledata()
 function nh_parse_text_tiles(data)
 {
     var lines = data.split('\n');
-    const re_color = /^([\.a-zA-Z0-9]+) *= *(\(([0-9]+), *([0-9]+), *([0-9]+)\)) *$/;
+    const re_color = /^([_$\.a-zA-Z0-9]+) *= *(\(([0-9]+), *([0-9]+), *([0-9]+)\)) *$/;
     const re_tilename = /^# tile ([0-9]+) \((.+)\)$/;
-    const re_tiledata = /^  ([\.a-zA-Z0-9]+)$/;
+    const re_tiledata = /^  ([_$\.a-zA-Z0-9]+)$/;
     var in_tile = 0;
     var tilename = "";
     var tilenum = -1;
