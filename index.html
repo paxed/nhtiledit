@@ -11,12 +11,16 @@
       <li>'<tt>u</tt>': undo
       <li>'<tt>.</tt>': color picker
       <li>'<tt>r</tt>': replace color under cursor with current color
+      <li>'<tt>-</tt>': change preview edit direction
     </ul>
   <p>code is on <a href="https://github.com/paxed/nhtiledit/">github</a>.
   <p>[<a href="#">hide</a>]
     </div>
-      <canvas id="paintarea"></canvas>
-      <div id="preview"></div>
+    <canvas id="paintarea"></canvas>
+    <div id="preview-wrapper">
+    <div id="preview-direction"></div>
+    <div id="preview"></div>
+    </div>
 
       <div>
       <span id="current-color"></span>

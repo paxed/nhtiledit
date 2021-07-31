@@ -17,6 +17,7 @@ const scale = 30;
 var canvas_wid = 16*scale;
 var canvas_hei = 16*scale;
 var canvas_update = 1;
+var preview_direction = 0;
 
 var default_data = `
 . = (71, 108, 108)
@@ -221,6 +222,15 @@ function nh_parse_text_tiles(data)
     show_tile_code(curtile);
     setup_preview(tiles[0].wid, tiles[0].hei);
     tile_update(tiles[0]);
+    show_preview_dir();
+}
+
+function set_current_tile(tilenum)
+{
+    curtile = tilenum;
+    tile_update(tiles[curtile]);
+    var sel = document.getElementById("tile-selector");
+    sel.options[curtile].selected = 'selected';
 }
 
 function preview_tile_click_event()
@@ -228,11 +238,15 @@ function preview_tile_click_event()
     var x = this.getAttribute("data-x");
     var y = this.getAttribute("data-y");
 
-    if (!tiles[curtile].image)
-        tiles[curtile].image = get_tile_image(tiles[curtile]);
+    if (preview_direction == 0) {
+        if (!tiles[curtile].image)
+            tiles[curtile].image = get_tile_image(tiles[curtile]);
 
-    preview.data[y][x] = curtile;
-    preview.img[y][x].src = tiles[curtile].image.src;
+        preview.data[y][x] = curtile;
+        preview.img[y][x].src = tiles[curtile].image.src;
+    } else if (curtile != preview.data[y][x]) {
+        set_current_tile(preview.data[y][x]);
+    }
 }
 
 function setup_preview(tilewid, tilehei)
@@ -559,6 +573,21 @@ function tile_replace_color(tilenum, fromclr, toclr)
     }
 }
 
+function show_preview_dir()
+{
+    var e = document.getElementById("preview-direction");
+    if (preview_direction == 0)
+        e.innerHTML = "=>";
+    else
+        e.innerHTML = "<=";
+}
+
+function change_preview_dir()
+{
+    preview_direction = (preview_direction + 1) % 2;
+    show_preview_dir();
+}
+
 function handle_keys()
 {
     if (event.defaultPrevented) {
@@ -578,6 +607,9 @@ function handle_keys()
         if (cursor_x >= 0) {
             tile_replace_color(curtile, tile_getpixel(cursor_x, cursor_y, tiles[curtile]), curcolor);
         }
+        break;
+    case "-":
+        change_preview_dir();
         break;
     default: return;
     }
