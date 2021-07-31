@@ -156,7 +156,8 @@ function nh_parse_text_tiles(data)
         if (!in_tile && line.match(re_color)) {
             var m = line.match(re_color);
             tmp_palette[m[1]] = { color: "rgb" + m[2] };
-            tmp_curcolor = m[1];
+            if (tmp_curcolor == "")
+                tmp_curcolor = m[1];
             if (!tmp_clr_wid) {
                 tmp_clr_wid = m[1].length;
             } else if (tmp_clr_wid != m[1].length) {
