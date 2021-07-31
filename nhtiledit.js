@@ -167,7 +167,7 @@ function nh_parse_text_tiles(data)
             tilenum = m[1];
             tilename = m[2];
             if (tilenum < tmp_tiles.length) {
-                alert("ERROR: Tile #" + tilenum + " already exists.");
+                console.log("WARNING: Tile #" + tilenum + " already exists.");
             }
         } else if (!in_tile && line == "{") {
             in_tile = 1;
