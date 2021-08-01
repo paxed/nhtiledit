@@ -6,6 +6,7 @@ canvas {
 
 #preview-wrapper {
     display:inline-block;
+    vertical-align: top;
 }
 
 #helpkey {
