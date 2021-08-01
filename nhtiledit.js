@@ -524,6 +524,7 @@ function tile_undo(tilenum)
         tile_setpixel(u.x, u.y, tile, u.oval);
         drawtile_pixel(0, 0, u.x, u.y, tile);
         tile.undo.pop(); /* remove the undo we just caused via tile_setpixel */
+        tile_update(tile);
     }
 }
 
@@ -532,8 +533,11 @@ function show_tile_code(tilenum)
     var e = document.getElementById("show-tile-format");
     var ty;
     var tile = tiles[tilenum];
+    var edited = "";
+    if (tile.undo && tile.undo.length > 0)
+        edited = "edited ";
 
-    var s = "# tile XXX (something)\n";
+    var s = "# tile " + tilenum + " (" + edited + tile.name + ")\n";
     s += "{\n";
     for (ty = 0; ty < tile.hei; ty++) {
         s += "  " + tile.data[ty] + "\n";
