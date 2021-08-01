@@ -279,7 +279,7 @@ function setup_preview(wid, hei)
             if (op && y < op.h && x < op.w)
                 ptiles[y][x] = op.data[y][x];
             else
-                ptiles[y][x] = 0;
+                ptiles[y][x] = curtile;
             images[y][x] = new Image();
             var spn = document.createElement("span");
             spn.setAttribute("data-x", x);
