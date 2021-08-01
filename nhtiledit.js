@@ -221,7 +221,7 @@ function nh_parse_text_tiles(data)
     create_tile_selector();
     create_color_picker();
     show_tile_code(curtile);
-    setup_preview(7, 7);
+    setup_preview(-1, -1);
     tile_update(tiles[0]);
     show_preview_dir();
 }
@@ -256,15 +256,30 @@ function setup_preview(wid, hei)
     var tiles = new Array();
     var x, y;
     var images = new Array();
+    var op = preview;
 
+    if (wid < 0) {
+        if (preview)
+            wid = preview.w;
+        else
+            wid = 7;
+    }
+    if (hei < 0) {
+        if (preview)
+            hei = preview.h;
+        else
+            hei = 7;
+    }
     e.innerHTML = '';
-    preview = null;
 
     for (y = 0; y < hei; y++) {
         tiles[y] = new Array();
         images[y] = new Array();
         for (x = 0; x < wid; x++) {
-            tiles[y][x] = 0;
+            if (op && y < op.h && x < op.w)
+                tiles[y][x] = op.data[y][x];
+            else
+                tiles[y][x] = 0;
             images[y][x] = new Image();
             var spn = document.createElement("span");
             spn.setAttribute("data-x", x);
@@ -276,6 +291,8 @@ function setup_preview(wid, hei)
         e.appendChild(document.createElement("br"));
     }
 
+    preview = null;
+    op = null;
     preview = { w: wid, h: hei, data: tiles, elem: e, img: images };
 }
 
@@ -651,6 +668,14 @@ function handle_keys()
         break;
     case "2":
         generate_preview("order");
+        break;
+    case "8":
+        setup_preview(Math.max(3, preview.w - 1), preview.h);
+        update_preview();
+        break;
+    case "9":
+        setup_preview(Math.min(40, preview.w + 1), preview.h);
+        update_preview();
         break;
     default: return;
     }
