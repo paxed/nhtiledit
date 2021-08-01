@@ -20,6 +20,12 @@ canvas {
     float: right;
 }
 
+#color-picker {
+    display: block;
+    width: 9em;
+    padding: 0.25em;
+}
+
 #color-picker .color {
     width: 2em;
     height: 2em;
@@ -36,6 +42,7 @@ canvas {
     height: 2em;
     display: inline-block;
     border: 1px solid black;
+    margin: 1em;
 }
 
 #show-tile-format {

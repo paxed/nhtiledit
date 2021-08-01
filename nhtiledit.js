@@ -253,7 +253,7 @@ function preview_tile_click_event()
 function setup_preview(wid, hei)
 {
     var e = document.getElementById("preview");
-    var tiles = new Array();
+    var ptiles = new Array();
     var x, y;
     var images = new Array();
     var op = preview;
@@ -273,13 +273,13 @@ function setup_preview(wid, hei)
     e.innerHTML = '';
 
     for (y = 0; y < hei; y++) {
-        tiles[y] = new Array();
+        ptiles[y] = new Array();
         images[y] = new Array();
         for (x = 0; x < wid; x++) {
             if (op && y < op.h && x < op.w)
-                tiles[y][x] = op.data[y][x];
+                ptiles[y][x] = op.data[y][x];
             else
-                tiles[y][x] = 0;
+                ptiles[y][x] = 0;
             images[y][x] = new Image();
             var spn = document.createElement("span");
             spn.setAttribute("data-x", x);
@@ -293,7 +293,7 @@ function setup_preview(wid, hei)
 
     preview = null;
     op = null;
-    preview = { w: wid, h: hei, data: tiles, elem: e, img: images };
+    preview = { w: wid, h: hei, data: ptiles, elem: e, img: images };
 }
 
 function update_preview()
@@ -316,6 +316,7 @@ function update_preview()
             if (!tile.image)
                 tile.image = get_tile_image(tile);
 
+            p.img[y][x].setAttribute("title", tile.name);
             p.img[y][x].src = tile.image.src;
         }
     }
