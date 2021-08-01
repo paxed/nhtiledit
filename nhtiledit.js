@@ -508,12 +508,12 @@ function tile_update(tile)
 
 function tile_setpixel(tx, ty, tile, val)
 {
-    var origval = tile.data[ty].slice(tx, tx + clr_wid);
+    var origval = tile.data[ty].substring(tx*clr_wid, (tx*clr_wid) + clr_wid);
     if (origval == val)
         return;
 
     tile.undo.push({ x: tx, y: ty, oval: origval });
-    var val = tile.data[ty].substr(0, tx * clr_wid) + val + tile.data[ty].substr(tx+clr_wid);
+    var val = tile.data[ty].substr(0, tx * clr_wid) + val + tile.data[ty].substr((tx*clr_wid) + clr_wid);
     tile.data[ty] = val;
     if (canvas_update) {
         tile_update(tile);
