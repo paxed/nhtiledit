@@ -18,6 +18,7 @@ var canvas_wid = 16*scale;
 var canvas_hei = 16*scale;
 var canvas_update = 1;
 var preview_direction = 0;
+var fileinput_name = "";
 
 var default_data = `
 . = (71, 108, 108)
@@ -220,7 +221,7 @@ function nh_parse_text_tiles(data)
     create_tile_selector();
     create_color_picker();
     show_tile_code(curtile);
-    setup_preview(tiles[0].wid, tiles[0].hei);
+    setup_preview(7, 7);
     tile_update(tiles[0]);
     show_preview_dir();
 }
@@ -249,16 +250,15 @@ function preview_tile_click_event()
     }
 }
 
-function setup_preview(tilewid, tilehei)
+function setup_preview(wid, hei)
 {
     var e = document.getElementById("preview");
     var tiles = new Array();
     var x, y;
-    const wid = 7;
-    const hei = 7;
     var images = new Array();
 
     e.innerHTML = '';
+    preview = null;
 
     for (y = 0; y < hei; y++) {
         tiles[y] = new Array();
@@ -301,6 +301,37 @@ function update_preview()
 
             p.img[y][x].src = tile.image.src;
         }
+    }
+}
+
+function generate_preview(style)
+{
+    var x, y;
+    var p = preview;
+
+    if (!preview)
+        return;
+
+    switch (style) {
+    case "randomize":
+        for (y = 0; y < p.h; y++) {
+            for (x = 0; x < p.w; x++) {
+                p.data[y][x] = Math.floor(Math.random() * tiles.length);
+            }
+        }
+        update_preview();
+        break;
+    case "order":
+        var i = 0;
+        for (y = 0; y < p.h; y++) {
+            for (x = 0; x < p.w; x++) {
+                p.data[y][x] = ((curtile + i) % tiles.length);
+                i = i + 1;
+            }
+        }
+        update_preview();
+        break;
+    default: break;
     }
 }
 
@@ -382,7 +413,7 @@ function change_drawing_color(newclr)
 function tile_select()
 {
     var sel = document.getElementById("tile-selector");
-    curtile = sel.options[sel.selectedIndex].value;
+    curtile = parseInt(sel.options[sel.selectedIndex].value);
     tile_update(tiles[curtile]);
 }
 
@@ -614,6 +645,12 @@ function handle_keys()
         break;
     case "-":
         change_preview_dir();
+        break;
+    case "1":
+        generate_preview("randomize");
+        break;
+    case "2":
+        generate_preview("order");
         break;
     default: return;
     }
