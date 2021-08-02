@@ -26,6 +26,7 @@ var clippings_idx = 0;
 var sel_rect = { x1: -1, y1: -1, x2: -1, y2: -1 };
 var prev_walls = -1;
 var prev_explosion = -1;
+var preview_disable = {};
 
 var default_data = `
 . = (71, 108, 108)
@@ -433,6 +434,7 @@ function nh_parse_text_tiles(data)
 
     prev_walls = -1;
     prev_explosion = -1;
+    preview_disable = {};
 
     curtile = 0;
     setup();
@@ -551,6 +553,9 @@ function generate_preview(style)
     if (!preview)
         return;
 
+    if (preview_disable[style])
+        return;
+
     switch (style) {
     case "randomize":
         for (y = 0; y < p.h; y++) {
@@ -582,6 +587,7 @@ function generate_preview(style)
                     break;
             if (i == tiles.length) {
                 alert("Wall tiles not found.");
+                preview_disable[style] = 1;
                 break;
             }
             t = ((i+t) % tiles.length);
@@ -625,6 +631,11 @@ function generate_preview(style)
             for (var i = 0; i < tiles.length; i++)
                 if (tiles[(i+t)%tiles.length].name.match(re))
                     break;
+            if (i == tiles.length) {
+                alert("Tiles for "+style+" not found.");
+                preview_disable[style] = 1;
+                break;
+            }
             t = ((i+t) % tiles.length);
         }
         if (style == "explosion")
