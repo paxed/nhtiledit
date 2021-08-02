@@ -597,6 +597,31 @@ function generate_preview(style)
         }
         update_preview();
         break;
+    case "swallow":
+    case "explosion":
+        var re;
+        var t = curtile;
+        var i = 0;
+        if (style == "swallow")
+            re = /swallow/;
+        else
+            re = /explosion/;
+        if (!tiles[curtile].name.match(re)) {
+            for (t = 0; t < tiles.length; t++)
+                if (tiles[t].name.match(re))
+                    break;
+            t = (t % tiles.length);
+        }
+        if (preview.w < 3)
+            setup_preview(3, preview.h);
+        for (y = 0; y < 3; y++) {
+            for (x = 0; x < 3; x++) {
+                if (!(style == "swallow" && x == 1 && y == 1))
+                    preview.data[y][x] = t + (i++);
+            }
+        }
+        update_preview();
+        break;
     default: break;
     }
 }
@@ -1145,6 +1170,12 @@ function handle_keys()
         break;
     case "3": /* wall sampler preview */
         generate_preview("walls");
+        break;
+    case "4": /* explosion tiles preview */
+        generate_preview("explosion");
+        break;
+    case "5": /* swallow tiles preview */
+        generate_preview("swallow");
         break;
     case "8": /* decrease selection width */
         setup_preview(Math.max(3, preview.w - 1), preview.h);
