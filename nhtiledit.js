@@ -19,6 +19,11 @@ var canvas_hei = 16*scale;
 var canvas_update = 1;
 var preview_direction = 0;
 var fileinput_name = "";
+var drawmode = "draw";
+var clipboard = null;
+var clippings = new Array();
+var clippings_idx = 0;
+var sel_rect = { x1: -1, y1: -1, x2: -1, y2: -1 };
 
 var default_data = `
 . = (71, 108, 108)
@@ -195,7 +200,7 @@ function nh_parse_text_tiles(data)
             }
             tileidx = tileidx + 1;
 
-            tmp_tiles.push({ wid: tilewid, hei: tilehei, name: tilename, data: tiledata, undo: new Array() });
+            tmp_tiles.push({ wid: tilewid, hei: tilehei, name: tilename, data: tiledata, undo: new Array(), selection: new Array() });
             in_tile = 0;
             tilenum = -1;
             tilehei = 0;
@@ -217,6 +222,7 @@ function nh_parse_text_tiles(data)
 
     curtile = 0;
     setup();
+    set_drawmode(drawmode);
     change_drawing_color(curcolor);
     create_tile_selector();
     create_color_picker();
@@ -224,6 +230,7 @@ function nh_parse_text_tiles(data)
     setup_preview(-1, -1);
     tile_update(tiles[0]);
     show_preview_dir();
+    show_clipboard();
 }
 
 function set_current_tile(tilenum)
@@ -364,10 +371,24 @@ function canvas_click_event()
     var tx = parseInt("" + (x / scale));
     var ty = parseInt("" + (y / scale));
 
-    tile_setpixel(tx, ty, tiles[curtile], curcolor);
-    drawtile_pixel(0, 0, tx, ty, tiles[curtile]);
+    if (drawmode == "selection") {
+        if (sel_rect.x1 > -1) {
+            sel_rect.x1 = sel_rect.y1 = -1;
+        } else {
+            draw_selection(tiles[curtile], 1);
+            selection_toggle(tiles[curtile], tx, ty);
+            draw_selection(tiles[curtile]);
+        }
+    } else if (drawmode == "draw") {
+        if (clipboard) {
+            paste_clipboard(clipboard, cursor_x, cursor_y)
+            draw_clipboard(tx, ty, clipboard, 0);
+        } else {
+            tile_setpixel(tx, ty, tiles[curtile], curcolor);
+            drawtile_pixel(0, 0, tx, ty, tiles[curtile]);
+        }
+    }
     draw_cursor(tx, ty);
-
     //console.log("CLICK("+tx+","+ty+")");
 }
 
@@ -378,6 +399,8 @@ function canvas_mouseleave_event()
 {
     if (cursor_x >= 0) {
         drawtile_pixel(0, 0, cursor_x, cursor_y, tiles[curtile]);
+        if (drawmode == "draw")
+            draw_clipboard(cursor_x, cursor_y, clipboard, 1);
     }
     cursor_x = cursor_y = -1;
 }
@@ -386,9 +409,13 @@ function draw_cursor(tx, ty)
 {
     if (cursor_x >= 0) {
         drawtile_pixel(0, 0, cursor_x, cursor_y, tiles[curtile]);
+        draw_clipboard(cursor_x, cursor_y, clipboard, 1);
     }
     cursor_x = tx;
     cursor_y = ty;
+
+    if (drawmode == "draw")
+        draw_clipboard(cursor_x, cursor_y, clipboard, 0);
 
     ctx.beginPath();
     ctx.lineWidth = 1;
@@ -397,6 +424,142 @@ function draw_cursor(tx, ty)
     ctx.rect((cursor_x*scale) + 1, (cursor_y*scale) + 1, scale - 2, scale - 2);
     ctx.stroke();
     ctx.globalCompositeOperation = "source-over";
+}
+
+function draw_selection(tile, erase)
+{
+    if (tile.selection && tile.selection.length > 0) {
+        for (var i = 0; i < tile.selection.length; i++) {
+            var x = tile.selection[i].x, y = tile.selection[i].y;
+            if (erase) {
+                drawtile_pixel(0, 0, x, y, tile);
+            } else {
+                ctx.beginPath();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = "rgb(0, 255, 255)";
+                ctx.globalCompositeOperation = "difference";
+                ctx.rect((x*scale) + 1, (y*scale) + 1, scale - 2, scale - 2);
+                ctx.stroke();
+                ctx.globalCompositeOperation = "source-over";
+            }
+        }
+    }
+}
+
+function selection_add(tile, tx, ty)
+{
+    for (var i = 0; i < tile.selection.length; i++) {
+        if (tile.selection[i].x == tx && tile.selection[i].y == ty)
+            return;
+    }
+    tile.selection.push({ x: tx, y: ty });
+}
+
+function selection_toggle(tile, tx, ty)
+{
+    for (var i = 0; i < tile.selection.length; i++) {
+        if (tile.selection[i].x == tx && tile.selection[i].y == ty) {
+            tile.selection.splice(i, 1);
+            return;
+        }
+    }
+    tile.selection.push({ x: tx, y: ty });
+}
+
+function selection_remove(tile, tx, ty)
+{
+    for (var i = 0; i < tile.selection.length; i++) {
+        if (tile.selection[i].x == tx && tile.selection[i].y == ty) {
+            tile.selection.splice(i, 1);
+            return;
+        }
+    }
+}
+
+function selection_getdata(tile)
+{
+    var tmp = new Array();
+    var i;
+    var minx = tile.wid, miny = tile.hei;
+    var maxx = 0, maxy = 0;
+    var centerx, centery;
+
+    for (var i = 0; i < tile.selection.length; i++) {
+        var tx = tile.selection[i].x, ty = tile.selection[i].y;
+        tmp.push({ x: tx, y: ty, pixel: tile_getpixel(tx, ty, tile) });
+        if (tx < minx) minx = tx;
+        if (ty < miny) miny = ty;
+        if (tx > maxx) maxx = tx;
+        if (ty > maxy) maxy = ty;
+    }
+
+    centerx = parseInt((maxx - minx)/2) + minx;
+    centery = parseInt((maxy - miny)/2) + miny;
+
+    if (tmp && tmp.length > 0)
+        return { cx: centerx, cy: centery, data: tmp };
+    return null;
+}
+
+function draw_clipboard(tx, ty, paste, erase)
+{
+    if (!paste || !paste.data)
+        return;
+
+    var i;
+    var tile = tiles[curtile];
+    var data = paste.data;
+
+    for (var i = 0; i < data.length; i++) {
+        var x = (data[i].x + tx - paste.cx), y = (data[i].y + ty - paste.cy);
+        if (x >= 0 && y >= 0 && x < tile.wid && y < tile.hei) {
+            if (erase) {
+                drawtile_pixel(0, 0, x, y, tile);
+            } else {
+                ctx.globalAlpha = 0.25;
+                draw_pixel(x, y, data[i].pixel);
+                ctx.globalAlpha = 1.0;
+                ctx.beginPath();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = "rgb(255, 255, 0)";
+                ctx.globalCompositeOperation = "difference";
+                ctx.rect((x*scale) + 1, (y*scale) + 1, scale - 2, scale - 2);
+                ctx.stroke();
+                ctx.globalCompositeOperation = "source-over";
+            }
+        }
+    }
+}
+
+function paste_clipboard(paste, dx, dy)
+{
+    var i;
+    var changed = 0;
+    var multiple = new Array();
+    var tile = tiles[curtile];
+    var data = paste.data;
+
+    if (!data)
+        return;
+
+    canvas_update = 0;
+    for (var i = 0; i < data.length; i++) {
+        var tx = (data[i].x + dx - paste.cx), ty = (data[i].y + dy - paste.cy);
+        if (tx >= 0 && ty >= 0 && tx < tile.wid && ty < tile.hei) {
+            var fromclr = tile_getpixel(tx, ty, tile);
+            if (fromclr != data[i].pixel) {
+                tile_setpixel(tx, ty, tile, data[i].pixel);
+                multiple.push(tile.undo.pop());
+                changed = 1;
+            }
+        }
+    }
+
+    canvas_update = 1;
+    if (changed) {
+        tile.undo.push({ multi: multiple });
+        tile_update(tile);
+    }
 }
 
 function canvas_mousemove_event()
@@ -410,8 +573,32 @@ function canvas_mousemove_event()
     var tx = parseInt("" + (x / scale));
     var ty = parseInt("" + (y / scale));
 
+    if (sel_rect.x1 > -1 && drawmode == "selection") {
+        var sx, sy;
+        draw_selection(tiles[curtile], 1);
+        if (cursor_x >= 0) {
+            for (sx = Math.min(sel_rect.x1, cursor_x); sx <= Math.max(sel_rect.x1, cursor_x); sx++) {
+                for (sy = Math.min(sel_rect.y1, cursor_y); sy <= Math.max(sel_rect.y1, cursor_y); sy++) {
+                    selection_remove(tiles[curtile], sx, sy);
+                }
+            }
+        }
+
+        for (sx = Math.min(sel_rect.x1, tx); sx <= Math.max(sel_rect.x1, tx); sx++) {
+            for (sy = Math.min(sel_rect.y1, ty); sy <= Math.max(sel_rect.y1, ty); sy++) {
+                selection_add(tiles[curtile], sx, sy);
+            }
+        }
+    }
+
     draw_cursor(tx, ty);
 
+    if (drawmode == "selection") {
+        draw_selection(tiles[curtile]);
+    }
+    if (clipboard && drawmode == "draw") {
+        draw_clipboard(tx, ty, clipboard, 0);
+    }
     //console.log("MOUSEMOVE("+tx+","+ty+")");
 }
 
@@ -502,8 +689,25 @@ function tile_update(tile)
 {
     tile.image = get_tile_image(tile);
     drawtile(0, 0, curtile);
+    if (drawmode != "selection") {
+        draw_selection(tile, 1);
+    } else {
+        draw_selection(tile);
+    }
+
     show_tile_code(curtile);
     update_preview();
+    if (drawmode == "draw") {
+        if (clipboard && cursor_x >= 0) {
+            draw_clipboard(cursor_x, cursor_y, clipboard, 0);
+        }
+    } else {
+        if (clipboard && cursor_x >= 0) {
+            draw_clipboard(cursor_x, cursor_y, clipboard, 1);
+        }
+    }
+    if (cursor_x >= 0)
+        draw_cursor(cursor_x, cursor_y);
 }
 
 function tile_setpixel(tx, ty, tile, val)
@@ -534,6 +738,12 @@ function drawtile_pixel(x,y, tx,ty, tile)
     var clrkey = tile.data[ty].substr(tx * clr_wid, clr_wid);
     ctx.fillStyle = palette[clrkey].color;
     ctx.fillRect(x + tx*scale, y + ty*scale, scale, scale);
+}
+
+function draw_pixel(tx,ty, clrkey)
+{
+    ctx.fillStyle = palette[clrkey].color;
+    ctx.fillRect(tx*scale, ty*scale, scale, scale);
 }
 
 function drawtile(x, y, tilenum)
@@ -641,6 +851,27 @@ function change_preview_dir()
     show_preview_dir();
 }
 
+function set_drawmode(mode)
+{
+    var e = document.getElementById("drawmode");
+    e.innerHTML = mode;
+    drawmode = mode;
+    tile_update(tiles[curtile]);
+}
+
+function show_clipboard()
+{
+    var e = document.getElementById("clipboard");
+    var c = "none";
+    var l = "";
+
+    if (clipboard)
+        c = (clippings_idx + 1);
+    if (clippings.length > 0)
+        l = "/" + clippings.length;
+    e.innerHTML = "clip:" + c + l;
+}
+
 function handle_keys()
 {
     if (event.defaultPrevented) {
@@ -648,37 +879,171 @@ function handle_keys()
     }
 
     switch (event.key) {
-    case ".":
-        if (cursor_x >= 0) {
+    case ".": /* color picker */
+        if (drawmode == "draw" && cursor_x >= 0) {
             change_drawing_color(tile_getpixel(cursor_x, cursor_y, tiles[curtile]));
         }
         break;
-    case "u":
-        tile_undo(curtile);
+    case "u": /* undo */
+        if (drawmode == "draw")
+            tile_undo(curtile);
         break;
-    case "r":
-        if (cursor_x >= 0) {
+    case "r": /* replace all pixels of (color under curse) with current color */
+        if (drawmode == "draw" && cursor_x >= 0) {
             tile_replace_color(curtile, tile_getpixel(cursor_x, cursor_y, tiles[curtile]), curcolor);
         }
         break;
-    case "-":
+    case "-": /* edit or pickup preview tile */
         change_preview_dir();
         break;
-    case "1":
+    case "1": /* randomize preview */
         generate_preview("randomize");
         break;
-    case "2":
+    case "2": /* order preview */
         generate_preview("order");
         break;
-    case "8":
+    case "8": /* decrease selection width */
         setup_preview(Math.max(3, preview.w - 1), preview.h);
         update_preview();
         break;
-    case "9":
+    case "9": /* increase selection width */
         setup_preview(Math.min(40, preview.w + 1), preview.h);
         update_preview();
         break;
-    default: return;
+    case "m": /* toggle between draw and selection mode */
+        if (drawmode == "selection") {
+            set_drawmode("draw");
+            tile_update(tiles[curtile]);
+        } else {
+            set_drawmode("selection");
+            tile_update(tiles[curtile]);
+        }
+        break;
+    case "c": /* add selection as new clipping, change to draw mode */
+        if (drawmode == "selection") {
+            if (clipboard && cursor_x >= 0) {
+                draw_clipboard(cursor_x, cursor_y, clipboard, 1);
+            }
+            clipboard = selection_getdata(tiles[curtile]);
+            if (clipboard) {
+                clippings.push(clipboard);
+                clippings_idx = clippings.length-1;
+                set_drawmode("draw");
+                tile_update(tiles[curtile]);
+                show_clipboard();
+            }
+        }
+        break;
+    case "v": /* paste current clipping into tile */
+        if (drawmode == "draw" && clipboard && cursor_x >= 0) {
+            paste_clipboard(clipboard, cursor_x, cursor_y)
+        }
+        break;
+    case "z": /* toggle between clipping and pixel drawing */
+        if (drawmode == "draw" && cursor_x >= 0) {
+            if (clipboard) {
+                draw_clipboard(cursor_x, cursor_y, clipboard, 1);
+                clipboard = null;
+            } else {
+                if (clippings_idx >= 0 && clippings_idx < clippings.length) {
+                    clipboard = clippings[clippings_idx];
+                    draw_clipboard(cursor_x, cursor_y, clipboard);
+                }
+            }
+            show_clipboard();
+        }
+        break;
+    case "s": /* next clipping */
+        if (drawmode == "draw") {
+            if (clipboard && cursor_x >= 0) {
+                draw_clipboard(cursor_x, cursor_y, clipboard, 1);
+            }
+            clippings_idx = (clippings_idx + 1) % clippings.length;
+            clipboard = null;
+            clipboard = clippings[clippings_idx];
+            if (clipboard && cursor_x >= 0)
+                draw_clipboard(cursor_x, cursor_y, clipboard);
+            show_clipboard();
+        }
+        break;
+    case "a": /* previous clipping */
+        if (drawmode == "draw") {
+            if (clipboard && cursor_x >= 0) {
+                draw_clipboard(cursor_x, cursor_y, clipboard, 1);
+            }
+            if (clippings_idx < 1)
+                clippings_idx = clippings.length - 1;
+            else
+                clippings_idx = (clippings_idx - 1) % clippings.length;
+            clipboard = null;
+            clipboard = clippings[clippings_idx];
+            if (clipboard && cursor_x >= 0)
+                draw_clipboard(cursor_x, cursor_y, clipboard);
+            show_clipboard();
+        }
+        break;
+    case "Delete": /* delete current clipping */
+        if (drawmode == "draw") {
+            if (clipboard && cursor_x >= 0) {
+                draw_clipboard(cursor_x, cursor_y, clipboard, 1);
+                if (clippings.length > 0) {
+                    clippings.splice(clippings_idx, 1);
+                    clippings_idx--;
+                    if (clippings_idx < 0)
+                        clippings_idx = clippings.length - 1;
+                }
+                clipboard = clippings[clippings_idx];
+                if (clipboard && cursor_x >= 0)
+                    draw_clipboard(cursor_x, cursor_y, clipboard);
+                show_clipboard();
+            }
+        }
+        break;
+    case "y": /* start selection rectangle */
+        if (drawmode == "selection" && cursor_x >= 0) {
+            sel_rect.x1 = cursor_x;
+            sel_rect.y1 = cursor_y;
+        }
+        break;
+    case "g": /* clear selection */
+        if (drawmode == "selection") {
+            draw_selection(tiles[curtile], 1);
+            tiles[curtile].selection = null;
+            tiles[curtile].selection = new Array();
+        }
+        break;
+    case "i": /* invert selection */
+        if (drawmode == "selection") {
+            draw_selection(tiles[curtile], 1);
+            var tx, ty;
+            for (tx = 0; tx < tiles[curtile].wid; tx++)
+                for (ty = 0; ty < tiles[curtile].hei; ty++)
+                    selection_toggle(tiles[curtile], tx, ty);
+            draw_selection(tiles[curtile]);
+        }
+        break;
+    case "t": /* toggle selection of all pixels of (color under cursor) */
+        if (drawmode == "selection" && cursor_x >= 0) {
+            draw_selection(tiles[curtile], 1);
+            var tx, ty;
+            var clrkey = tile_getpixel(cursor_x, cursor_y, tiles[curtile]);
+            for (tx = 0; tx < tiles[curtile].wid; tx++)
+                for (ty = 0; ty < tiles[curtile].hei; ty++)
+                    if (tile_getpixel(tx, ty, tiles[curtile]) == clrkey)
+                        selection_toggle(tiles[curtile], tx, ty);
+            draw_selection(tiles[curtile]);
+        }
+        break;
+    case "?": /* toggle help */
+        if (window.location.hash == "#help") {
+            window.location.hash = "";
+        } else {
+            window.location.hash = "help";
+        }
+        break;
+    default:
+        //console.log("KEY:'"+event.key+"'");
+        return;
     }
 
     event.preventDefault();

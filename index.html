@@ -6,21 +6,41 @@
   <body>
     <a id="helpkey" href="#help">?</a>
     <div id="help"><h1>NetHack tile editor</h1>
-    Keys:
-    <ul>
-      <li>'<tt>u</tt>': undo
-      <li>'<tt>.</tt>': color picker
-      <li>'<tt>r</tt>': replace color under cursor with current color
-      <li>'<tt>-</tt>': change preview edit direction
-      <li>'<tt>1</tt>': randomize preview
-      <li>'<tt>2</tt>': order preview, starting from current tile
-      <li>'<tt>8</tt>', '<tt>9</tt>': change preview width
+     <p>Allows easier editing of <a href="https://nethack.org">NetHack</a>'s native tile format.
+     <p><b>Keys:</b></p>
+     <ul>
+      <li>'<tt>?</tt>': toggle this text</li>
+      <li>'<tt>m</tt>': toggle between <b>draw</b> and <b>selection</b> modes</li>
+      <li>'<tt>-</tt>': change preview-pane edit direction</li>
+      <li>'<tt>1</tt>': randomize preview</li>
+      <li>'<tt>2</tt>': order preview, starting from current tile</li>
+      <li>'<tt>8</tt>', '<tt>9</tt>': change preview width</li>
+     </ul>
+     <p><b>Draw mode</b>: click on tile to change pixels.</p>
+     <ul>
+      <li>'<tt>u</tt>': undo</li>
+      <li>'<tt>.</tt>': color picker</li>
+      <li>'<tt>r</tt>': replace all pixels of (color under cursor) with current color</li>
+      <li>'<tt>v</tt>': paste clip</li>
+      <li>'<tt>z</tt>': toggle between clip and pixel drawing</li>
+      <li>'<tt>a</tt>'/'<tt>s</tt>': next/previous clip</li>
+      <li>'<tt>del</tt>': delete current clip</li>
+     </ul>
+     <p><b>Selection mode</b>: click on tile to toggle selected pixels.</p>
+     <ul>
+      <li>'<tt>c</tt>': add selection into new clip and change to <b>draw</b> mode</li>
+      <li>'<tt>t</tt>': toggle selection of all pixels of (color under cursor)</li>
+      <li>'<tt>y</tt>': rectangle</li>
+      <li>'<tt>g</tt>': clear selection</li>
+      <li>'<tt>i</tt>': invert selection</li>
     </ul>
-  <p>code is on <a href="https://github.com/paxed/nhtiledit/">github</a>.
-  <p>[<a href="#">hide</a>]
-    </div>
-    <canvas id="paintarea"></canvas>
+     <p>code is on <a href="https://github.com/paxed/nhtiledit/">github</a>.</p>
+     <p>[<a href="#">hide</a>]</p>
+   </div>
+      <canvas id="paintarea"></canvas>
     <div id="preview-wrapper">
+      <span id="drawmode"></span>
+      <span id="clipboard"></span>
       <div id="preview-direction"></div>
       <div id="preview"></div>
 
