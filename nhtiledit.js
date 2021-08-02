@@ -538,6 +538,8 @@ function update_preview()
     }
 }
 
+var prev_walls = -1;
+
 function generate_preview(style)
 {
     var x, y;
@@ -567,16 +569,21 @@ function generate_preview(style)
         break;
     case "walls":
         var t = curtile;
-        if (!tiles[curtile].name.match(/wall/)) {
-            for (t = 0; t < tiles.length; t++)
-                if (tiles[t].name.match(/wall/))
+        if (prev_walls > -1) {
+            t = prev_walls;
+            prev_walls = -1;
+        }
+        if (!tiles[t].name.match(/walls?\b/)) {
+            for (var i = 0; i < tiles.length; i++)
+                if (tiles[(i+t)%tiles.length].name.match(/walls?\b/))
                     break;
-            if (t == tiles.length) {
+            if (i == tiles.length) {
                 alert("Wall tiles not found.");
                 break;
             }
-            t = (t % tiles.length);
+            t = ((i+t) % tiles.length);
         }
+        prev_walls = (t + 11) % tiles.length;
         var offsets = [
             [  2,  1,  1,  8,  1,  1,  3 ],
             [  0, -1, -1,  0, -1, -1,  0 ],
