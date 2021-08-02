@@ -22,8 +22,10 @@ canvas {
 
 #color-picker {
     display: block;
-    width: 9em;
+    width: 10em;
     padding: 0.25em;
+    height: 23em;
+    overflow: auto;
 }
 
 #color-picker .color {
@@ -50,4 +52,8 @@ canvas {
     unicode-bidi: embed;
     font-family: monospace;
     white-space: pre;
+}
+
+#tile-selector {
+    min-width: 15em;
 }
