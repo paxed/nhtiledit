@@ -24,6 +24,8 @@ var clipboard = null;
 var clippings = new Array();
 var clippings_idx = 0;
 var sel_rect = { x1: -1, y1: -1, x2: -1, y2: -1 };
+var prev_walls = -1;
+var prev_explosion = -1;
 
 var default_data = `
 . = (71, 108, 108)
@@ -429,6 +431,9 @@ function nh_parse_text_tiles(data)
     clr_wid = tmp_clr_wid;
     curcolor = tmp_curcolor;
 
+    prev_walls = -1;
+    prev_explosion = -1;
+
     curtile = 0;
     setup();
     set_drawmode(drawmode);
@@ -493,7 +498,7 @@ function setup_preview(wid, hei)
         images[y] = new Array();
         for (x = 0; x < wid; x++) {
             if (op && y < op.h && x < op.w)
-                ptiles[y][x] = op.data[y][x];
+                ptiles[y][x] = (op.data[y][x] % tiles.length);
             else
                 ptiles[y][x] = curtile;
             images[y][x] = new Image();
@@ -537,8 +542,6 @@ function update_preview()
         }
     }
 }
-
-var prev_walls = -1;
 
 function generate_preview(style)
 {
@@ -608,23 +611,31 @@ function generate_preview(style)
     case "explosion":
         var re;
         var t = curtile;
-        var i = 0;
+        var j = 0;
         if (style == "swallow")
             re = /swallow/;
-        else
+        else {
             re = /explosion/;
-        if (!tiles[curtile].name.match(re)) {
-            for (t = 0; t < tiles.length; t++)
-                if (tiles[t].name.match(re))
-                    break;
-            t = (t % tiles.length);
+            if (prev_explosion > -1) {
+                t = prev_explosion;
+                prev_explosion = -1;
+            }
         }
+        if (!tiles[t].name.match(re)) {
+            for (var i = 0; i < tiles.length; i++)
+                if (tiles[(i+t)%tiles.length].name.match(re))
+                    break;
+            t = ((i+t) % tiles.length);
+        }
+        if (style == "explosion")
+            prev_explosion = (t + 9) % tiles.length;
         if (preview.w < 3)
             setup_preview(3, preview.h);
         for (y = 0; y < 3; y++) {
             for (x = 0; x < 3; x++) {
-                if (!(style == "swallow" && x == 1 && y == 1))
-                    preview.data[y][x] = t + (i++);
+                if (!(x == 1 && y == 1 && style == "swallow")) {
+                    preview.data[y][x] = (t + (j++)) % tiles.length;
+                }
             }
         }
         update_preview();
