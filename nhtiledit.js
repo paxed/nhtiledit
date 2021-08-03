@@ -447,6 +447,7 @@ function nh_parse_text_tiles(data)
     tile_update(tiles[0]);
     show_preview_dir();
     show_clipboard();
+    show_tile_download();
 }
 
 function set_current_tile(tilenum)
@@ -1082,13 +1083,12 @@ function tile_undo(tilenum)
     }
 }
 
-function show_tile_code(tilenum)
+function get_tile_code(tilenum, showedited)
 {
-    var e = document.getElementById("show-tile-format");
     var ty;
     var tile = tiles[tilenum];
     var edited = "";
-    if (tile.undo && tile.undo.length > 0)
+    if (showedited && tile.undo && tile.undo.length > 0)
         edited = "edited ";
 
     var s = "# tile " + tilenum + " (" + edited + tile.name + ")\n";
@@ -1098,7 +1098,74 @@ function show_tile_code(tilenum)
     }
     s += "}\n";
 
-    e.textContent = s;
+    return s;
+}
+
+function show_tile_code(tilenum)
+{
+    var e = document.getElementById("show-tile-format");
+    e.textContent = get_tile_code(tilenum, 1);
+}
+
+function show_tile_download()
+{
+    var e = document.getElementById("download-file");
+    var b = document.createElement("input");
+    b.type = "button";
+    b.value = "Download tileset";
+    e.innerHTML = "";
+    b.addEventListener("click", download_tileset);
+    e.appendChild(b);
+}
+
+function download(filename, text) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+}
+
+function sortfunc(a,b)
+{
+    if (a.charAt(0).match(/[0-9]/) && !b.charAt(0).match(/[0-9]/)) return 1;
+    if (!a.charAt(0).match(/[0-9]/) && b.charAt(0).match(/[0-9]/)) return -1;
+    if (a > b) return 1;
+    if (a < b) return -1;
+    return 0;
+}
+
+function download_tileset()
+{
+    var s = "";
+    var i;
+    var fname;
+    var fie = document.getElementById('fileInput');
+
+    if (fie && fie.files && fie.files[0])
+        fname = document.getElementById('fileInput').files[0].name;
+
+    if (!fname)
+        fname = "example_nethack_tiles.txt";
+
+    var colorkeys = Object.keys(palette);
+
+    for (const key in colorkeys.sort(sortfunc)) {
+        var c = palette[colorkeys[key]].color;
+        c = c.replace(/^rgb/, "");
+        s = s + colorkeys[key] + " = " + c + "\n";
+    }
+
+    for (i = 0; i < tiles.length; i++) {
+        s = s + get_tile_code(i, 0);
+    }
+
+    download(fname, s);
 }
 
 /* replace all colors */
