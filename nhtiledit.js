@@ -16,6 +16,8 @@ function Tile(width, height, tilenumber, tilename, tiledata)
     this._undo = new Array();
     this.selection = new Array();
     this.image = null;
+    this.canvas_update = 1;
+    this.undo_update = 1;
 
     this.setpixel = function(tx, ty, val)
     {
@@ -23,10 +25,11 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         if (origval == val)
             return;
 
-        this._undo.push({ x: tx, y: ty, oval: origval });
+        if (this.undo_update)
+            this._undo.push({ x: tx, y: ty, oval: origval });
         var val = this.data[ty].substr(0, tx * clr_wid) + val + this.data[ty].substr((tx*clr_wid) + clr_wid);
         this.data[ty] = val;
-        if (canvas_update) {
+        if (this.canvas_update) {
             this.update();
         }
     }
@@ -61,22 +64,22 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         if (!this._undo || this._undo.length < 1)
             return;
         var u = this._undo.pop();
+        this.undo_update = 0;
         if (u.multi) {
             /* multiple pixels changed */
-            canvas_update = 0;
+            this.canvas_update = 0;
             for (var i = 0; i < u.multi.length; i++) {
                 this.setpixel(u.multi[i].x, u.multi[i].y, u.multi[i].oval);
-                this._undo.pop(); /* remove the undo we just caused via tile_setpixel */
             }
-            canvas_update = 1;
+            this.canvas_update = 1;
             this.update();
         } else {
             /* single pixel changed */
             this.setpixel(u.x, u.y, u.oval);
             this.draw_pixel(u.x, u.y);
-            this._undo.pop(); /* remove the undo we just caused via tile_setpixel */
             this.update();
         }
+        this.undo_update = 1;
     }
 
     this.get_code = function(showedited)
@@ -160,7 +163,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         if (fromclr == toclr)
             return;
 
-        canvas_update = 0;
+        this.canvas_update = 0;
         for (ty = 0; ty < this.hei; ty++) {
             for (tx = 0; tx < this.wid; tx++) {
                 var val = this.getpixel(tx, ty);
@@ -172,7 +175,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
             }
         }
 
-        canvas_update = 1;
+        this.canvas_update = 1;
         if (changed) {
             this._undo.push({ multi: multiple });
             this.update();
@@ -289,7 +292,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         if (!data)
             return;
 
-        canvas_update = 0;
+        this.canvas_update = 0;
         for (var i = 0; i < data.length; i++) {
             var tx = (data[i].x + dx - paste.cx), ty = (data[i].y + dy - paste.cy);
             if (tx >= 0 && ty >= 0 && tx < this.wid && ty < this.hei) {
@@ -302,7 +305,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
             }
         }
 
-        canvas_update = 1;
+        this.canvas_update = 1;
         if (changed) {
             this._undo.push({ multi: multiple });
             this.update();
@@ -320,7 +323,6 @@ var curcolor = "";
 const scale = 30;
 var canvas_wid = 16*scale;
 var canvas_hei = 16*scale;
-var canvas_update = 1;
 var preview_direction = 0;
 var fileinput_name = "";
 var drawmode = "draw";
