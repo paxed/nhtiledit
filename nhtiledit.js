@@ -214,6 +214,15 @@ function Tile(width, height, tilenumber, tilename, tiledata)
             }
     }
 
+    this.selection_invert = function(tx, ty)
+    {
+        this.selection_draw(1);
+        for (var tx = 0; tx < this.wid; tx++)
+            for (var ty = 0; ty < this.hei; ty++)
+                this.selection_toggle(tx, ty);
+        this.selection_draw();
+    }
+
     this.selection_getdata = function()
     {
         var tmp = new Array();
@@ -1410,12 +1419,7 @@ function handle_keys()
         break;
     case "i": /* invert selection */
         if (drawmode == "selection") {
-            tiles[curtile].selection_draw(1);
-            var tx, ty;
-            for (tx = 0; tx < tiles[curtile].wid; tx++)
-                for (ty = 0; ty < tiles[curtile].hei; ty++)
-                    tiles[curtile].selection_toggle(tx, ty);
-            tiles[curtile].selection_draw();
+            tiles[curtile].selection_invert();
         }
         break;
     case "t": /* toggle selection of all pixels of (color under cursor) */
