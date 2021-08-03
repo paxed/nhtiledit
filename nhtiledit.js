@@ -223,6 +223,17 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         this.selection_draw();
     }
 
+    this.selection_toggle_by_color = function(clrkey)
+    {
+        this.selection_draw(1);
+        var clrkey = tiles[curtile].getpixel(cursor_x, cursor_y);
+        for (var tx = 0; tx < tiles[curtile].wid; tx++)
+            for (var ty = 0; ty < tiles[curtile].hei; ty++)
+                if (this.getpixel(tx, ty) == clrkey)
+                    this.selection_toggle(tx, ty);
+        this.selection_draw();
+    }
+
     this.selection_getdata = function()
     {
         var tmp = new Array();
@@ -1424,14 +1435,8 @@ function handle_keys()
         break;
     case "t": /* toggle selection of all pixels of (color under cursor) */
         if (drawmode == "selection" && cursor_x >= 0) {
-            tiles[curtile].selection_draw(1);
-            var tx, ty;
             var clrkey = tiles[curtile].getpixel(cursor_x, cursor_y);
-            for (tx = 0; tx < tiles[curtile].wid; tx++)
-                for (ty = 0; ty < tiles[curtile].hei; ty++)
-                    if (tiles[curtile].getpixel(tx, ty) == clrkey)
-                        tiles[curtile].selection_toggle(tx, ty);
-            tiles[curtile].selection_draw();
+            tiles[curtile].selection_toggle_by_color(clrkey);
         }
         break;
     case "?": /* toggle help */
