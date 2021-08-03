@@ -19,6 +19,13 @@ function Tile(width, height, tilenumber, tilename, tiledata)
     this.canvas_update = 1;
     this.undo_update = 1;
 
+    if (this.data == null) {
+        this.data = new Array();
+        for (y = 0; y < this.hei; y++) {
+            this.data[y] = curcolor.repeat(this.wid);
+        }
+    }
+
     this.setpixel = function(tx, ty, val)
     {
         var origval = this.getpixel(tx, ty);
@@ -180,6 +187,30 @@ function Tile(width, height, tilenumber, tilename, tiledata)
             this._undo.push({ multi: multiple });
             this.update();
         }
+    }
+
+    this.rotate = function()
+    {
+        var multiple = new Array();
+        this.canvas_update = 0;
+        var tmp = new Tile(this.wid, this.hei);
+        tmp.undo_update = tmp.canvas_update = 0;
+        for (var x = 0; x < this.wid; x++)
+            for (var y = 0; y < this.hei; y++)
+                tmp.setpixel(this.wid - 1 - y, x, this.getpixel(x,y));
+        for (var x = 0; x < this.wid; x++)
+            for (var y = 0; y < this.hei; y++) {
+                var fromclr = this.getpixel(x,y);
+                var toclr = tmp.getpixel(x, y);
+                if (fromclr != toclr) {
+                    this.setpixel(x, y, toclr);
+                    multiple.push(this._undo.pop());
+                }
+            }
+        tmp = null;
+        this.canvas_update = 1;
+        this._undo.push({ multi: multiple });
+        this.update();
     }
 
     this.selection_clear = function()
@@ -1417,6 +1448,11 @@ function handle_keys()
                     draw_clipboard(cursor_x, cursor_y, clipboard);
                 show_clipboard();
             }
+        }
+        break;
+    case "o": /* rotate tile */
+        if (drawmode == "draw") {
+            tiles[curtile].rotate();
         }
         break;
     case "y": /* start selection rectangle */
