@@ -1015,7 +1015,7 @@ function paste_clipboard(paste, dx, dy)
             var fromclr = tile.getpixel(tx, ty);
             if (fromclr != data[i].pixel) {
                 tile.setpixel(tx, ty, data[i].pixel);
-                multiple.push(tile.undo.pop());
+                multiple.push(tile._undo.pop());
                 changed = 1;
             }
         }
@@ -1023,7 +1023,7 @@ function paste_clipboard(paste, dx, dy)
 
     canvas_update = 1;
     if (changed) {
-        tile.undo.push({ multi: multiple });
+        tile._undo.push({ multi: multiple });
         tile.update();
     }
 }
@@ -1138,7 +1138,7 @@ function get_tile_code(tilenum, showedited)
     var ty;
     var tile = tiles[tilenum];
     var edited = "";
-    if (showedited && tile.undo && tile.undo.length > 0)
+    if (showedited && tile._undo && tile._undo.length > 0)
         edited = "edited ";
 
     var s = "# tile " + tilenum + " (" + edited + tile.name + ")\n";
