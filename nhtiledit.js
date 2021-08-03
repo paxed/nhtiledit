@@ -1290,7 +1290,8 @@ function handle_keys()
     switch (event.key) {
     case ".": /* color picker */
         if (drawmode == "draw" && cursor_x >= 0) {
-            change_drawing_color(tiles[curtile].getpixel(cursor_x, cursor_y));
+            var clrkey = tiles[curtile].getpixel(cursor_x, cursor_y);
+            change_drawing_color(clrkey);
         }
         break;
     case "u": /* undo */
@@ -1299,7 +1300,8 @@ function handle_keys()
         break;
     case "r": /* replace all pixels of (color under curse) with current color */
         if (drawmode == "draw" && cursor_x >= 0) {
-            tiles[curtile].replace_color(tiles[curtile].getpixel(cursor_x, cursor_y), curcolor);
+            var clrkey = tiles[curtile].getpixel(cursor_x, cursor_y);
+            tiles[curtile].replace_color(clrkey, curcolor);
         }
         break;
     case "-": /* edit or pickup preview tile */
