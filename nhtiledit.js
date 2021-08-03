@@ -179,6 +179,13 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         }
     }
 
+    this.selection_clear = function()
+    {
+        this.selection_draw(1);
+        this.selection = null;
+        this.selection = new Array();
+    }
+
     this.selection_add = function(tx, ty)
     {
         for (var i = 0; i < this.selection.length; i++)
@@ -1398,9 +1405,7 @@ function handle_keys()
         break;
     case "g": /* clear selection */
         if (drawmode == "selection") {
-            tiles[curtile].selection_draw(1);
-            tiles[curtile].selection = null;
-            tiles[curtile].selection = new Array();
+            tiles[curtile].selection_clear();
         }
         break;
     case "i": /* invert selection */
