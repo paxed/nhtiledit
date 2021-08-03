@@ -18,12 +18,18 @@ function Tile(width, height, tilenumber, tilename, tiledata)
     this.image = null;
     this.canvas_update = 1;
     this.undo_update = 1;
+    this._pal = null;
 
     if (this.data == null) {
         this.data = new Array();
         for (y = 0; y < this.hei; y++) {
             this.data[y] = curcolor.repeat(this.wid);
         }
+    }
+
+    this.setpal = function(p)
+    {
+        this._pal = p;
     }
 
     this.setpixel = function(tx, ty, val)
@@ -34,7 +40,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
 
         if (this.undo_update)
             this._undo.push({ x: tx, y: ty, oval: origval });
-        var val = this.data[ty].substr(0, tx * clr_wid) + val + this.data[ty].substr((tx*clr_wid) + clr_wid);
+        var val = this.data[ty].substr(0, tx * this._pal.clr_wid) + val + this.data[ty].substr((tx*this._pal.clr_wid) + this._pal.clr_wid);
         this.data[ty] = val;
         if (this.canvas_update) {
             this.update();
@@ -43,7 +49,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
 
     this.getpixel = function(tx, ty)
     {
-        return this.data[ty].substr(tx * clr_wid, clr_wid);
+        return this.data[ty].substr(tx * this._pal.clr_wid, this._pal.clr_wid);
     }
 
     this.draw_pixel = function(tx,ty)
@@ -53,7 +59,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
             return;
         }
         var clrkey = this.getpixel(tx, ty);
-        ctx.fillStyle = palette[clrkey].color;
+        ctx.fillStyle = this._pal.getcolor(clrkey);
         ctx.fillRect(tx*scale, ty*scale, scale, scale);
     }
 
@@ -148,8 +154,8 @@ function Tile(width, height, tilenumber, tilename, tiledata)
 
         for (ty = 0; ty < this.hei; ty++) {
             for (tx = 0; tx < this.wid; tx++) {
-                var clrkey = this.data[ty].substr(tx * clr_wid, clr_wid);
-                c.fillStyle = palette[clrkey].color;
+                var clrkey = this.data[ty].substr(tx * this._pal.clr_wid, this._pal.clr_wid);
+                c.fillStyle = this._pal.getcolor(clrkey);
                 c.fillRect(tx, ty, 1, 1);
             }
         }
@@ -194,6 +200,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         var multiple = new Array();
         this.canvas_update = 0;
         var tmp = new Tile(this.wid, this.hei);
+        tmp.setpal(this._pal)
         tmp.undo_update = tmp.canvas_update = 0;
         for (var x = 0; x < this.wid; x++)
             for (var y = 0; y < this.hei; y++)
@@ -344,11 +351,73 @@ function Tile(width, height, tilenumber, tilename, tiledata)
     }
 }
 
+function Palette() {
+    this.clr_wid = 0;
+    this.colors = {};
+    this.picker_id = null;
+
+    this.getcolor = function(key)
+    {
+        if (this.colors[key])
+            return this.colors[key].color;
+        return null;
+    }
+
+    this.addcolor = function(key, rgb)
+    {
+        if (this.clr_wid > 0 && key.length != this.clr_wid) {
+            alert("ERROR: color key '" + key + "' is different length from earlier keys.");
+            return;
+        }
+        if (key.length > this.clr_wid)
+            this.clr_wid = key.length;
+        this.colors[key] = { color: "rgb" + rgb };
+    }
+
+    this.create_color_picker = function(id)
+    {
+        if (id)
+            this.picker_id = id;
+        if (!this.picker_id)
+            return;
+        var picker = document.getElementById(this.picker_id);
+        picker.innerHTML = '';
+
+        for (let key in this.colors) {
+            var clr = this.colors[key].color;
+            var el = document.createElement("span");
+            el.className = "color";
+            el.setAttribute("data-palette-key", key);
+            el.addEventListener("click", this.color_select);
+            el.style.backgroundColor = clr;
+            picker.appendChild(el);
+        }
+    }
+
+    this.color_select = function()
+    {
+        var e = event.target;
+        var key = e.getAttribute("data-palette-key");
+        change_drawing_color(key);
+    }
+
+    this.get_format = function()
+    {
+        var s = "";
+        var colorkeys = Object.keys(this.colors);
+
+        for (const key in colorkeys.sort(sortfunc)) {
+            var c = this.colors[colorkeys[key]].color;
+            c = c.replace(/^rgb/, "");
+            s = s + colorkeys[key] + " = " + c + "\n";
+        }
+        return s;
+    }
+};
 
 var preview;
-var palette = {};
+var pal = new Palette();
 var tiles = new Array();
-var clr_wid = 0;
 var curtile = -1;
 var curcolor = "";
 const scale = 30;
@@ -683,9 +752,8 @@ function handleFileLoad(event) {
 
 function reset_tiledata()
 {
-    palette = {};
+    pal = new Palette();
     tiles = new Array();
-    clr_wid = 0;
     curtile = -1;
     curcolor = "";
 }
@@ -704,23 +772,18 @@ function nh_parse_text_tiles(data)
     var tilewid = 0;
     var tileidx = 0;
 
-    var tmp_palette = {};
+    var tmp_palette = new Palette();
     var tmp_tiles = new Array();
-    var tmp_clr_wid = 0;
+    //var tmp_clr_wid = 0;
     var tmp_curcolor = "";
 
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
         if (!in_tile && line.match(re_color)) {
             var m = line.match(re_color);
-            tmp_palette[m[1]] = { color: "rgb" + m[2] };
+            tmp_palette.addcolor(m[1], m[2]);
             if (tmp_curcolor == "")
                 tmp_curcolor = m[1];
-            if (!tmp_clr_wid) {
-                tmp_clr_wid = m[1].length;
-            } else if (tmp_clr_wid != m[1].length) {
-                alert("ERROR: color key '" + m[1] + "' is different length from earlier keys.");
-            }
         } else if (!in_tile && line.match(re_tilename)) {
             var m = line.match(re_tilename);
             tilenum = m[1];
@@ -735,10 +798,10 @@ function nh_parse_text_tiles(data)
             tiledata[tilehei] = m[1];
             tilehei = tilehei + 1;
             if (!tilewid) {
-                if ((m[1].length % tmp_clr_wid)) {
+                if ((m[1].length % tmp_palette.clr_wid)) {
                     alert("ERROR: tiledata for tile #" + tilenum + "(" + tilename + ") is not even with palette width");
                 }
-                tilewid = parseInt("" + (m[1].length / tmp_clr_wid));
+                tilewid = parseInt("" + (m[1].length / tmp_palette.clr_wid));
             }
         } else if (in_tile && line == "}") {
             if (tilenum == -1) {
@@ -749,7 +812,9 @@ function nh_parse_text_tiles(data)
             }
             tileidx = tileidx + 1;
 
-            tmp_tiles.push(new Tile(tilewid, tilehei, tileidx, tilename, tiledata));
+            var t = new Tile(tilewid, tilehei, tileidx, tilename, tiledata);
+
+            tmp_tiles.push(t);
             in_tile = 0;
             tilenum = -1;
             tilehei = 0;
@@ -764,9 +829,10 @@ function nh_parse_text_tiles(data)
     }
 
     reset_tiledata();
-    palette = tmp_palette;
+    pal = tmp_palette;
     tiles = tmp_tiles;
-    clr_wid = tmp_clr_wid;
+    for (var i = 0; i < tiles.length; i++)
+        tiles[i].setpal(pal);
     curcolor = tmp_curcolor;
 
     prev_walls = -1;
@@ -778,7 +844,7 @@ function nh_parse_text_tiles(data)
     set_drawmode(drawmode);
     change_drawing_color(curcolor);
     create_tile_selector();
-    create_color_picker();
+    pal.create_color_picker("color-picker");
     show_tile_code(tiles[curtile]);
     setup_preview(-1, -1);
     tiles[0].update();
@@ -1128,15 +1194,15 @@ function canvas_mousemove_event()
 
 function change_drawing_color(newclr)
 {
-    if (!palette[newclr]) {
+    if (!pal.getcolor(newclr)) {
         console.log("WARNING: color '" + newclr + "' is not defined.");
         return;
     }
     curcolor = newclr;
 
     var e = document.getElementById("current-color");
-    e.style.backgroundColor = palette[newclr].color;
-    ctx.fillStyle = palette[newclr].color;
+    e.style.backgroundColor = pal.getcolor(newclr);
+    ctx.fillStyle = pal.getcolor(newclr);
 }
 
 function tile_select()
@@ -1169,25 +1235,9 @@ function color_select()
     change_drawing_color(key);
 }
 
-function create_color_picker()
-{
-    var picker = document.getElementById("color-picker");
-    picker.innerHTML = '';
-
-    for (let key in palette) {
-        var clr = palette[key];
-        var el = document.createElement("span");
-        el.className = "color";
-        el.setAttribute("data-palette-key", key);
-        el.addEventListener("click", color_select);
-        el.style.backgroundColor = clr.color;
-        picker.appendChild(el);
-    }
-}
-
 function draw_pixel(tx,ty, clrkey)
 {
-    ctx.fillStyle = palette[clrkey].color;
+    ctx.fillStyle = pal.getcolor(clrkey);
     ctx.fillRect(tx*scale, ty*scale, scale, scale);
 }
 
@@ -1261,13 +1311,7 @@ function download_tileset()
     if (!fname)
         fname = "example_nethack_tiles.txt";
 
-    var colorkeys = Object.keys(palette);
-
-    for (const key in colorkeys.sort(sortfunc)) {
-        var c = palette[colorkeys[key]].color;
-        c = c.replace(/^rgb/, "");
-        s = s + colorkeys[key] + " = " + c + "\n";
-    }
+    s += pal.get_format();
 
     for (i = 0; i < tiles.length; i++) {
         s = s + tiles[i].get_code(0);
