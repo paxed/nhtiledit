@@ -36,7 +36,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         return this.data[ty].substr(tx * clr_wid, clr_wid);
     }
 
-    this.draw_pixel = function(x,y, tx,ty)
+    this.draw_pixel = function(tx,ty)
     {
         if (tx < 0 || ty < 0 || tx >= this.wid || ty >= this.hei) {
             console.log("Trying to draw_pixel("+tx+","+ty+")");
@@ -44,14 +44,14 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         }
         var clrkey = this.getpixel(tx, ty);
         ctx.fillStyle = palette[clrkey].color;
-        ctx.fillRect(x + tx*scale, y + ty*scale, scale, scale);
+        ctx.fillRect(tx*scale, ty*scale, scale, scale);
     }
 
-    this.draw = function(x, y)
+    this.draw = function()
     {
         for (var ty = 0; ty < this.hei; ty++) {
             for (var tx = 0; tx < this.wid; tx++) {
-                this.draw_pixel(x,y, tx,ty);
+                this.draw_pixel(tx,ty);
             }
         }
     }
@@ -73,7 +73,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         } else {
             /* single pixel changed */
             this.setpixel(u.x, u.y, u.oval);
-            this.draw_pixel(0, 0, u.x, u.y);
+            this.draw_pixel(u.x, u.y);
             this._undo.pop(); /* remove the undo we just caused via tile_setpixel */
             this.update();
         }
@@ -98,7 +98,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
     this.update = function()
     {
         this.update_image();
-        this.draw(0, 0);
+        this.draw();
         if (drawmode != "selection") {
             this.selection_draw(1);
         } else {
@@ -238,7 +238,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
             for (var i = 0; i < this.selection.length; i++) {
                 var x = this.selection[i].x, y = this.selection[i].y;
                 if (erase) {
-                    this.draw_pixel(0, 0, x, y);
+                    this.draw_pixel(x, y);
                 } else {
                     ctx.beginPath();
                     ctx.lineWidth = 1;
@@ -926,7 +926,7 @@ function canvas_click_event()
             draw_clipboard(tx, ty, clipboard, 0);
         } else {
             tiles[curtile].setpixel(tx, ty, curcolor);
-            tiles[curtile].draw_pixel(0, 0, tx, ty);
+            tiles[curtile].draw_pixel(tx, ty);
         }
     }
     draw_cursor(tx, ty);
@@ -939,7 +939,7 @@ var cursor_y = -1;
 function canvas_mouseleave_event()
 {
     if (cursor_x >= 0) {
-        tiles[curtile].draw_pixel(0, 0, cursor_x, cursor_y);
+        tiles[curtile].draw_pixel(cursor_x, cursor_y);
         if (drawmode == "draw")
             draw_clipboard(cursor_x, cursor_y, clipboard, 1);
     }
@@ -949,7 +949,7 @@ function canvas_mouseleave_event()
 function draw_cursor(tx, ty)
 {
     if (cursor_x >= 0) {
-        tiles[curtile].draw_pixel(0, 0, cursor_x, cursor_y);
+        tiles[curtile].draw_pixel(cursor_x, cursor_y);
         draw_clipboard(cursor_x, cursor_y, clipboard, 1);
     }
     cursor_x = tx;
@@ -980,7 +980,7 @@ function draw_clipboard(tx, ty, paste, erase)
         var x = (data[i].x + tx - paste.cx), y = (data[i].y + ty - paste.cy);
         if (x >= 0 && y >= 0 && x < tile.wid && y < tile.hei) {
             if (erase) {
-                tile.draw_pixel(0, 0, x, y);
+                tile.draw_pixel(x, y);
             } else {
                 ctx.globalAlpha = 0.25;
                 draw_pixel(x, y, data[i].pixel);
