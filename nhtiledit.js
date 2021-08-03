@@ -279,6 +279,35 @@ function Tile(width, height, tilenumber, tilename, tiledata)
         }
     }
 
+    this.clip_paste = function(paste, dx, dy)
+    {
+        var i;
+        var changed = 0;
+        var multiple = new Array();
+        var data = paste.data;
+
+        if (!data)
+            return;
+
+        canvas_update = 0;
+        for (var i = 0; i < data.length; i++) {
+            var tx = (data[i].x + dx - paste.cx), ty = (data[i].y + dy - paste.cy);
+            if (tx >= 0 && ty >= 0 && tx < this.wid && ty < this.hei) {
+                var fromclr = this.getpixel(tx, ty);
+                if (fromclr != data[i].pixel) {
+                    this.setpixel(tx, ty, data[i].pixel);
+                    multiple.push(this._undo.pop());
+                    changed = 1;
+                }
+            }
+        }
+
+        canvas_update = 1;
+        if (changed) {
+            this._undo.push({ multi: multiple });
+            this.update();
+        }
+    }
 }
 
 
@@ -949,7 +978,7 @@ function canvas_click_event()
         }
     } else if (drawmode == "draw") {
         if (clipboard) {
-            paste_clipboard(clipboard, cursor_x, cursor_y)
+            tiles[curtile].clip_paste(clipboard, cursor_x, cursor_y)
             draw_clipboard(tx, ty, clipboard, 0);
         } else {
             tiles[curtile].setpixel(tx, ty, curcolor);
@@ -1021,37 +1050,6 @@ function draw_clipboard(tx, ty, paste, erase)
                 ctx.globalCompositeOperation = "source-over";
             }
         }
-    }
-}
-
-function paste_clipboard(paste, dx, dy)
-{
-    var i;
-    var changed = 0;
-    var multiple = new Array();
-    var tile = tiles[curtile];
-    var data = paste.data;
-
-    if (!data)
-        return;
-
-    canvas_update = 0;
-    for (var i = 0; i < data.length; i++) {
-        var tx = (data[i].x + dx - paste.cx), ty = (data[i].y + dy - paste.cy);
-        if (tx >= 0 && ty >= 0 && tx < tile.wid && ty < tile.hei) {
-            var fromclr = tile.getpixel(tx, ty);
-            if (fromclr != data[i].pixel) {
-                tile.setpixel(tx, ty, data[i].pixel);
-                multiple.push(tile._undo.pop());
-                changed = 1;
-            }
-        }
-    }
-
-    canvas_update = 1;
-    if (changed) {
-        tile._undo.push({ multi: multiple });
-        tile.update();
     }
 }
 
@@ -1356,7 +1354,7 @@ function handle_keys()
         break;
     case "v": /* paste current clipping into tile */
         if (drawmode == "draw" && clipboard && cursor_x >= 0) {
-            paste_clipboard(clipboard, cursor_x, cursor_y)
+            tiles[curtile].clip_paste(clipboard, cursor_x, cursor_y)
         }
         break;
     case "z": /* toggle between clipping and pixel drawing */
