@@ -908,7 +908,9 @@ function setup_preview(wid, hei)
                 ptiles[y][x] = (op.data[y][x] % tiles.length);
             else
                 ptiles[y][x] = curtile;
-            images[y][x] = new Image();
+            images[y][x] = new Image(tiles[curtile].wid, tiles[curtile].hei);
+            images[y][x].src = tiles[curtile].get_image();
+            images[y][x].setAttribute("title", tiles[curtile].name);
             var spn = document.createElement("span");
             spn.setAttribute("data-x", x);
             spn.setAttribute("data-y", y);
