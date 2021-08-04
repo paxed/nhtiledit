@@ -355,6 +355,7 @@ function Palette() {
     this.clr_wid = 0;
     this.colors = {};
     this.picker_id = null;
+    this.color_order = [];
 
     this.getcolor = function(key)
     {
@@ -372,6 +373,7 @@ function Palette() {
         if (key.length > this.clr_wid)
             this.clr_wid = key.length;
         this.colors[key] = { color: "rgb" + rgb };
+        this.color_order.push(key);
     }
 
     this.create_color_picker = function(id)
@@ -404,12 +406,11 @@ function Palette() {
     this.get_format = function()
     {
         var s = "";
-        var colorkeys = Object.keys(this.colors);
-
-        for (const key in colorkeys.sort(sortfunc)) {
-            var c = this.colors[colorkeys[key]].color;
+        for (var i = 0; i < this.color_order.length; i++) {
+            var key = this.color_order[i];
+            var c = this.colors[key].color;
             c = c.replace(/^rgb/, "");
-            s = s + colorkeys[key] + " = " + c + "\n";
+            s = s + key + " = " + c + "\n";
         }
         return s;
     }
@@ -810,9 +811,9 @@ function nh_parse_text_tiles(data)
             if (tileidx != tilenum) {
                 console.log("WARNING: tile number does not match actual tile order");
             }
-            tileidx = tileidx + 1;
 
-            var t = new Tile(tilewid, tilehei, tileidx, tilename, tiledata);
+            var t = new Tile(tilewid, tilehei, tilenum, tilename, tiledata);
+            tileidx = tileidx + 1;
 
             tmp_tiles.push(t);
             in_tile = 0;
@@ -1287,15 +1288,6 @@ function download(filename, text) {
   element.click();
 
   document.body.removeChild(element);
-}
-
-function sortfunc(a,b)
-{
-    if (a.charAt(0).match(/[0-9]/) && !b.charAt(0).match(/[0-9]/)) return 1;
-    if (!a.charAt(0).match(/[0-9]/) && b.charAt(0).match(/[0-9]/)) return -1;
-    if (a > b) return 1;
-    if (a < b) return -1;
-    return 0;
 }
 
 function download_tileset()
