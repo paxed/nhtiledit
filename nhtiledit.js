@@ -140,7 +140,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
     {
         if (!this.image)
             this.update_image();
-        return this.image.src;
+        return this.image;
     }
 
     this.update_image = function()
@@ -160,6 +160,7 @@ function Tile(width, height, tilenumber, tilename, tiledata)
             }
         }
         var img = new Image(this.wid, this.hei);
+        img.setAttribute("title", this.name);
         img.crossOrigin = 'Anonymous';
         img.src = e.toDataURL("image/png");
         c = null;
@@ -868,11 +869,10 @@ function preview_tile_click_event()
     var y = this.getAttribute("data-y");
 
     if (preview_direction == 0) {
-        if (!tiles[curtile].image)
-            tiles[curtile].image = tiles[curtile].get_image();
+        tiles[curtile].update_image();
 
         preview.data[y][x] = curtile;
-        preview.img[y][x].src = tiles[curtile].get_image();
+        preview.img[y][x] = tiles[curtile].get_image().cloneNode();
     } else if (curtile != preview.data[y][x]) {
         set_current_tile(preview.data[y][x]);
     }
@@ -908,9 +908,7 @@ function setup_preview(wid, hei)
                 ptiles[y][x] = (op.data[y][x] % tiles.length);
             else
                 ptiles[y][x] = curtile;
-            images[y][x] = new Image(tiles[curtile].wid, tiles[curtile].hei);
-            images[y][x].src = tiles[curtile].get_image();
-            images[y][x].setAttribute("title", tiles[curtile].name);
+            images[y][x] = tiles[curtile].get_image().cloneNode();
             var spn = document.createElement("span");
             spn.setAttribute("data-x", x);
             spn.setAttribute("data-y", y);
@@ -944,7 +942,7 @@ function update_preview()
             var tile = tiles[tilenum];
 
             p.img[y][x].setAttribute("title", tile.name);
-            p.img[y][x].src = tile.get_image();
+            p.img[y][x].src = tile.get_image().src;
         }
     }
 }
