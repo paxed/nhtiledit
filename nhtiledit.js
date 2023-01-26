@@ -793,6 +793,8 @@ function nh_parse_text_tiles(data)
             if (tilenum < tmp_tiles.length) {
                 console.log("WARNING: Tile #" + tilenum + " already exists.");
             }
+        } else if (!in_tile && line.startsWith("#")) {
+            continue;
         } else if (!in_tile && line == "{") {
             in_tile = 1;
         } else if (in_tile && line.match(re_tiledata)) {
