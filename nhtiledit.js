@@ -6,13 +6,14 @@ if (!canvas.getContext) {
 }
 var ctx = canvas.getContext("2d");
 
-function Tile(width, height, tilenumber, tilename, tiledata)
+function Tile(width, height, tilenumber, tilename, tiledata, tilecmts)
 {
     this.wid = width;
     this.hei = height;
     this.tilenum = tilenumber;
     this.name = tilename;
     this.data = tiledata;
+    this.cmts = tilecmts;
     this._undo = new Array();
     this.selection = new Array();
     this.image = null;
@@ -103,6 +104,9 @@ function Tile(width, height, tilenumber, tilename, tiledata)
             edited = "edited ";
 
         var s = "# tile " + this.tilenum + " (" + edited + this.name + ")\n";
+        for (ty = 0; ty < this.cmts.length; ty++) {
+            s += this.cmts[ty] + "\n";
+        }
         s += "{\n";
         for (ty = 0; ty < this.hei; ty++) {
             s += "  " + this.data[ty] + "\n";
@@ -767,12 +771,14 @@ function nh_parse_text_tiles(data)
     const re_tilename = /^# tile ([0-9]+) \((.+)\)$/;
     const re_tiledata = /^  ([_$\.a-zA-Z0-9]+)$/;
     var in_tile = 0;
+    var in_cmts = 0;
     var tilename = "";
     var tilenum = -1;
     var tiledata = {};
     var tilehei = 0;
     var tilewid = 0;
     var tileidx = 0;
+    var tilecmts = [];
 
     var tmp_palette = new Palette();
     var tmp_tiles = new Array();
@@ -790,13 +796,16 @@ function nh_parse_text_tiles(data)
             var m = line.match(re_tilename);
             tilenum = m[1];
             tilename = m[2];
+            in_cmts = 1;
             if (tilenum < tmp_tiles.length) {
                 console.log("WARNING: Tile #" + tilenum + " already exists.");
             }
         } else if (!in_tile && line.startsWith("#")) {
-            continue;
+            if (in_cmts)
+                tilecmts.push(line);
         } else if (!in_tile && line == "{") {
             in_tile = 1;
+            in_cmts = 0;
         } else if (in_tile && line.match(re_tiledata)) {
             var m = line.match(re_tiledata);
             tiledata[tilehei] = m[1];
@@ -815,16 +824,18 @@ function nh_parse_text_tiles(data)
                 console.log("WARNING: tile number does not match actual tile order");
             }
 
-            var t = new Tile(tilewid, tilehei, tilenum, tilename, tiledata);
+            var t = new Tile(tilewid, tilehei, tilenum, tilename, tiledata, tilecmts);
             tileidx = tileidx + 1;
 
             tmp_tiles.push(t);
             in_tile = 0;
+            in_cmts = 1;
             tilenum = -1;
             tilehei = 0;
             tilewid = 0;
             tilename = "";
             tiledata = {};
+            tilecmts = [];
         } else if (line != "") {
             alert("ERROR: Unknown file format.");
             document.getElementById('fileInput').value = null;
