@@ -768,7 +768,7 @@ function nh_parse_text_tiles(data)
 {
     var lines = data.split('\n');
     const re_color = /^([_$\.a-zA-Z0-9]+) *= *(\(([0-9]+), *([0-9]+), *([0-9]+)\)) *$/;
-    const re_tilename = /^# tile ([0-9]+) \((.+)\)$/;
+    const re_tilename = /^# tile ([0-9]+)( +\((.+)\))?$/;
     const re_tiledata = /^  ([_$\.a-zA-Z0-9]+)$/;
     var in_tile = 0;
     var in_cmts = 0;
@@ -795,7 +795,10 @@ function nh_parse_text_tiles(data)
         } else if (!in_tile && line.match(re_tilename)) {
             var m = line.match(re_tilename);
             tilenum = m[1];
-            tilename = m[2];
+            tilename = m[3];
+            if (tilename === undefined) {
+                tilename = "ERROR: No tile name";
+            }
             in_cmts = 1;
             if (tilenum < tmp_tiles.length) {
                 console.log("WARNING: Tile #" + tilenum + " already exists.");
